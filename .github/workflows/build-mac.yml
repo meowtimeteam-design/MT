@@ -3,6 +3,9 @@ name: Build Mac DMG
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-mac:
     runs-on: macos-latest
