@@ -20,7 +20,8 @@ jobs:
 
       - name: Đóng gói ra file Mac
         run: npm run build -- --mac
-
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Gom file thành phẩm trả về
         uses: actions/upload-artifact@v4
         with:
