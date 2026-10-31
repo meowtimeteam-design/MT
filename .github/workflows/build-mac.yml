@@ -21,6 +21,12 @@ jobs:
       - name: Cài đặt thư viện
         run: npm install
 
+      - name: Bơm file .env vào máy ảo
+        run: |
+          cat << 'EOF' > .env
+          ${{ secrets.ENV_FILE }}
+          EOF
+
       - name: Đóng gói ra file Mac
         run: npm run build -- --mac
         env:
