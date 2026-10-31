@@ -1,0 +1,50 @@
+{
+  "name": "meowtime-tool",
+  "version": "1.0.2",
+  "description": "Tool Báo Cáo Tiến Độ Team Meowtime",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "electron-updater": "^6.8.11",
+    "googleapis": "^128.0.0"
+  },
+  "devDependencies": {
+    "electron": "^27.3.11",
+    "electron-builder": "^24.6.4"
+  },
+  "build": {
+    "appId": "com.meowtime.app",
+    "productName": "Meowtime Tool",
+    "directories": {
+      "output": "dist"
+    },
+    "extraResources": [
+      ".env"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Meowtime Tool"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "meowtimeteam-design",
+      "repo": "MT"
+    },
+    "mac": {
+    "target": ["dmg", "zip"],
+    "icon": "icon.icns",
+    "category": "public.app-category.productivity"
+  }
+  }
+}
