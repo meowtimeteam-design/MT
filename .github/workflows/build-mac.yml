@@ -1,0 +1,40 @@
+name: Build Mac DMG
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - name: Clone mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Cài đặt Node.js v24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Cài đặt thư viện
+        run: npm install
+
+      - name: Bơm file .env vào máy ảo
+        run: |
+          cat << 'EOF' > .env
+          ${{ secrets.ENV_FILE }}
+          EOF
+
+      - name: Đóng gói ra file Mac
+        run: npm run build -- --mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Gom file thành phẩm trả về
+        uses: actions/upload-artifact@v4
+        with:
+          name: Meowtime-Mac-App
+          path: |
+            dist/*.dmg
+            dist/*.dmg.blockmap

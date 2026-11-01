@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Tool Quản Lý Tiến Độ - Meowtime</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #2f3136; color: white; margin: 0; }
+        .tabs { display: flex; border-bottom: 2px solid #202225; margin-bottom: 20px; flex-wrap: wrap; gap: 6px; padding-bottom: 10px; }
+        .tab-btn { flex: 1 1 calc(20% - 6px); padding: 10px; cursor: pointer; background: #36393f; color: #b9bbbe; border: none; font-weight: bold; transition: 0.2s; font-size: 13px; border-radius: 4px; }
+        .tab-btn:hover { background: #40444b; color: white; }
+        .tab-btn.active { background: #5865F2 !important; color: white !important; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #dcddde; }
+        input, select, textarea { width: 100%; padding: 10px; box-sizing: border-box; background: #40444b; border: 1px solid #202225; color: white; border-radius: 4px; font-family: inherit; }
+        button.action-btn { width: 100%; padding: 12px; background-color: #5865F2; color: white; border: none; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 14px; margin-bottom: 8px; }
+        button.action-btn:hover { opacity: 0.9; }
+        .status { margin-top: 15px; font-weight: bold; white-space: pre-wrap; line-height: 1.5; background: #202225; padding: 12px; border-radius: 5px; display: none; }
+        .status:not(:empty) { display: block; }
+        .job-item { background: #40444b; padding: 10px; margin-bottom: 8px; border-radius: 4px; border-left: 4px solid #43b581; }
+        .file-row { display: flex; gap: 10px; align-items: center; }
+        .sub-box { background: #36393f; padding: 15px; border-radius: 6px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab(event, 'tabDone')">1. Báo Done</button>
+        <button class="tab-btn" onclick="openTab(event, 'tabChapMoi')">2. Thêm Chap</button>
+        <button class="tab-btn" onclick="openTab(event, 'tabNopSP')">3. Nộp SP / QC</button>
+        <button class="tab-btn" onclick="openTab(event, 'tabNhanViec')">4. Nhận Việc</button>
+        <button class="tab-btn" onclick="openTab(event, 'tabXinNghi')">5. Xin Nghỉ</button>
+        <button class="tab-btn" onclick="openTab(event, 'tabDeadline')" style="background-color: #3ba55c; color: white;">6. Deadline</button>
+        <button class="tab-btn" onclick="openTab(event, 'tabDoiDL')" style="background-color: #ed4245; color: white;">7. Dời Hạn</button>
+        <button class="tab-btn" onclick="openTab(event, 'tabNganHang')" style="background-color: #9b59b6; color: white;">8. Ví & BXH</button>
+        <button class="tab-btn" onclick="openTab(event, 'tabQuanTri')" style="background-color: #e67e22; color: white;">9. Quản Trị</button>
+        <button class="tab-btn" onclick="openTab(event, 'tabAI')" style="background-color: #1abc9c; color: white;">10. AI Dịch</button>
+    </div>
+
+    <!-- TAB 1: BÁO DONE -->
+    <div id="tabDone" class="tab-content active">
+        <div class="form-group"><label>ID Discord của bạn:</label><input type="text" id="done_id" placeholder="Nhập ID Discord..."></div>
+        <div class="form-group"><label>Tên Truyện:</label><input type="text" id="done_truyen" list="truyenList" placeholder="Gõ để chọn truyện..."></div>
+        <div class="form-group"><label>Số Chap:</label><input type="text" id="done_chap" placeholder="VD: 45 hoặc 45-47"></div>
+        <div class="form-group">
+            <label>Vị trí (Role):</label>
+            <select id="done_role">
+                <option value="TRANS">Trans</option>
+                <option value="CLEAN">Clean</option>
+                <option value="TYPE">Type</option>
+                <option value="EDIT_FULL">Edit Full</option>
+            </select>
+        </div>
+        <button class="action-btn" onclick="submitTab('done')">Báo Cáo Lên Discord & Sheets</button>
+        <div id="status_done" class="status"></div>
+    </div>
+
+    <!-- TAB 2: THÊM CHAP MỚI -->
+    <div id="tabChapMoi" class="tab-content">
+        <div class="form-group"><label>Tên Truyện:</label><input type="text" id="new_truyen" list="truyenList" placeholder="Gõ để chọn truyện..."></div>
+        <div class="form-group"><label>Danh sách Chap mới:</label><input type="text" id="new_chap" placeholder="VD: 1-5 hoặc 3, 5, 6"></div>
+        <button class="action-btn" onclick="submitTab('newChap')">Tạo Chap Mới Trên Bảng</button>
+        <div id="status_newChap" class="status"></div>
+    </div>
+
+    <!-- TAB 3: NỘP SẢN PHẨM & GẮN LINK QC -->
+    <div id="tabNopSP" class="tab-content">
+        <div class="form-group"><label>ID Discord của bạn:</label><input type="text" id="nop_id" placeholder="Nhập ID Discord..."></div>
+        <div class="form-group"><label>Tên Truyện:</label><input type="text" id="nop_truyen" list="truyenList" placeholder="Gõ để chọn truyện..."></div>
+        <div class="form-group"><label>Số Chap:</label><input type="text" id="nop_chap" placeholder="VD: 45"></div>
+        <div class="form-group">
+            <label>Nộp cho vị trí (Role):</label>
+            <select id="nop_role">
+                <option value="TRANS">Trans</option>
+                <option value="CLEAN">Clean</option>
+                <option value="TYPE">Type</option>
+                <option value="EDIT_FULL">Edit Full</option>
+                <option value="FIX" style="color: #faa61a;">Đã Fix</option>
+                <option value="QC" style="color: #ed4245;">QC (Chỉ gắn link vào bảng QLY)</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="group_nop_note" style="display: none;">
+            <label>Ghi chú (Note) cho QC:</label>
+            <input type="text" id="nop_note" placeholder="VD: Sót text trang 3, lỗi typo nhiều...">
+        </div>
+
+        <div class="form-group">
+            <label>Cách 1 — Dán Link Folder Drive chứa sản phẩm / Link QC:</label>
+            <input type="text" id="nop_link" placeholder="Dán link Google Drive (https://...) vào đây...">
+        </div>
+
+        <div class="form-group" id="group_nop_zip">
+            <label>Cách 2 — Hoặc tải lên File nén (.ZIP) từ máy tính:</label>
+            <div class="file-row">
+                <input type="text" id="nop_file_path" placeholder="Chưa chọn file .zip nào..." readonly>
+                <button type="button" class="action-btn" style="width: 180px; margin-bottom: 0; background-color: #4f545c;" onclick="chooseZipFile()">📁 Chọn File ZIP</button>
+            </div>
+        </div>
+
+        <button class="action-btn" onclick="submitTab('nopSP')">🚀 Nộp Sản Phẩm / Gắn Link</button>
+        <div id="status_nopSP" class="status"></div>
+    </div>
+
+    <!-- TAB 4: NHẬN VIỆC RANDOM & HỐT HÀNG DROP -->
+    <div id="tabNhanViec" class="tab-content">
+        <div class="form-group"><label>ID Discord của bạn:</label><input type="text" id="nv_id" placeholder="Nhập ID Discord..."></div>
+        <div style="display: flex; gap: 15px;">
+            <div class="form-group" style="flex: 2;">
+                <label>Muốn hốt vị trí:</label>
+                <select id="nv_role">
+                    <option value="TRANS_HÀN">Trans Hàn</option>
+                    <option value="TRANS_ANH">Trans Anh</option>
+                    <option value="TRANS_TRUNG">Trans Trung</option>
+                    <option value="TRANS_NHẬT">Trans Nhật</option>
+                    <option value="CLEAN">Clean</option>
+                    <option value="TYPE">Type</option>
+                    <option value="EDIT_FULL">Edit Full</option>
+                </select>
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label>Loại truyện:</label>
+                <select id="nv_loai">
+                    <option value="all">Tất cả</option>
+                    <option value="manga">Manga</option>
+                    <option value="manhwa">Manhwa</option>
+                </select>
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label>Số lượng:</label>
+                <input type="number" id="nv_soluong" value="1" min="1" max="10">
+            </div>
+        </div>
+        <button class="action-btn" onclick="submitTab('nhanViecRandom')" style="background-color: #faa61a;">🎲 Bốc Việc Ngẫu Nhiên</button>
+
+        <div class="sub-box">
+            <label style="color: #43b581;">📦 Kho Hàng Drop (Từ thành viên xin nghỉ phép):</label>
+            <button class="action-btn" onclick="loadDroppedTasks()" style="background-color: #3ba55c; margin-top: 8px;">🔍 Xem Hàng Đang Drop</button>
+            <div id="danhSachDrop" style="margin-top: 10px; max-height: 180px; overflow-y: auto;"></div>
+            <button id="btnClaimDrop" class="action-btn" onclick="claimSelectedDrops()" style="display: none; background-color: #ed4245; margin-top: 10px;">⚡ Hốt Các Chap Đã Chọn</button>
+        </div>
+        <div id="status_nhanViec" class="status"></div>
+    </div>
+
+    <!-- TAB 5: XIN NGHỈ -->
+    <div id="tabXinNghi" class="tab-content">
+        <div class="form-group"><label>ID Discord của bạn:</label><input type="text" id="nghi_id" placeholder="Nhập ID Discord..."></div>
+        <div class="form-group"><label>Số ngày muốn nghỉ:</label><input type="number" id="nghi_songay" placeholder="VD: 3"></div>
+        <div class="form-group"><label>Lý do xin nghỉ:</label><input type="text" id="nghi_lydo" placeholder="VD: Bận ôn thi..."></div>
+        <button class="action-btn" onclick="checkTasksForTab('xinNghi')" style="background-color: #faa61a;">Kiểm tra việc đang ôm</button>
+
+        <div id="khuVucChonChap_xinNghi" style="display: none; margin-top: 15px; background: #36393f; padding: 15px; border-radius: 5px;">
+            <label style="color: #faa61a;">Tick vào những chap muốn DROP (Nhượng lại cho team):</label>
+            <div id="danhSachTask_xinNghi" style="margin-top: 10px; margin-bottom: 15px; max-height: 200px; overflow-y: auto;"></div>
+            <button class="action-btn" onclick="submitTab('xinNghi')" style="background-color: #ed4245;">Chốt Đơn Xin Nghỉ</button>
+        </div>
+        <div id="status_xinNghi" class="status"></div>
+    </div>
+
+    <!-- TAB 6: DEADLINE CỦA TÔI & TOÀN TEAM -->
+    <div id="tabDeadline" class="tab-content">
+        <div class="form-group"><label>ID Discord của bạn:</label><input type="text" id="dl_id" placeholder="Nhập ID Discord..."></div>
+        <div style="display: flex; gap: 10px;">
+            <button class="action-btn" onclick="loadMyDeadlines()" style="background-color: #5865F2;">🔄 Xem Deadline Của Tôi</button>
+            <button class="action-btn" onclick="checkTeamDeadlines()" style="background-color: #e67e22;">📊 Quét Trễ Hạn Toàn Team</button>
+        </div>
+        <div id="status_deadline" class="status"></div>
+        <div id="danhSachDeadline" style="margin-top: 15px; max-height: 400px; overflow-y: auto; padding-right: 5px;"></div>
+    </div>
+
+    <!-- TAB 7: DỜI DEADLINE -->
+    <div id="tabDoiDL" class="tab-content">
+        <div class="form-group"><label>ID Discord của bạn:</label><input type="text" id="doi_id" placeholder="Nhập ID Discord..."></div>
+        <button class="action-btn" onclick="checkTasksForTab('doiDL')" style="background-color: #faa61a;">Kiểm tra việc đang ôm</button>
+
+        <div id="khuVucChonChap_doiDL" style="display: none; margin-top: 15px; background: #36393f; padding: 15px; border-radius: 5px;">
+            <label style="color: #faa61a;">Tick vào những chap sếp muốn DỜI HẠN:</label>
+            <div id="danhSachTask_doiDL" style="margin-top: 10px; margin-bottom: 15px; max-height: 200px; overflow-y: auto;"></div>
+            <div class="form-group">
+                <label>Số ngày muốn dời thêm:</label>
+                <input type="number" id="doi_songay" placeholder="VD: 1 (Dời thêm 1 ngày)">
+            </div>
+            <div style="color: #f04747; font-size: 12px; margin-bottom: 15px;">
+                *Note: Không lạm dụng, dời deadline quá 10 lần -> từ lần 11 trừ 2k/chap.
+            </div>
+            <button class="action-btn" onclick="submitTab('doiDL')" style="background-color: #ed4245;">Chốt Dời Deadline</button>
+        </div>
+        <div id="status_doiDL" class="status"></div>
+    </div>
+
+    <!-- TAB 8: NGÂN HÀNG (VÍ) & BẢNG XẾP HẠNG -->
+    <div id="tabNganHang" class="tab-content">
+        <div class="form-group"><label>ID Discord của bạn:</label><input type="text" id="bank_id" placeholder="Nhập ID Discord..."></div>
+        <div style="display: flex; gap: 10px;">
+            <button class="action-btn" onclick="viewMyBank()" style="background-color: #9b59b6;">💳 Xem Thẻ Thành Viên & Lương</button>
+            <button class="action-btn" onclick="viewLeaderboard()" style="background-color: #f1c40f; color: #202225;">🏆 Xem Bảng Xếp Hạng Top 10</button>
+        </div>
+        <div id="status_bank" class="status"></div>
+    </div>
+
+   <!-- TAB 9: QUẢN TRỊ BẢNG (Có bảo mật mật khẩu 070309) -->
+<div id="tabQuanTri" class="tab-content">
+    <!-- Bảng nhập mật khẩu bảo vệ -->
+    <div id="authQuanTri" style="background: #36393f; padding: 25px; border-radius: 6px; text-align: center; max-width: 400px; margin: 40px auto;">
+        <h3 style="color: #f04747; margin-top: 0;">🔒 KHU VỰC QUẢN TRỊ BẢO MẬT</h3>
+        <p style="color: #dcddde; font-size: 13px;">Vui lòng nhập mật khẩu quản trị để tiếp tục:</p>
+        <div class="form-group" style="margin-top: 15px;">
+            <input type="password" id="admin_password" placeholder="Nhập mật khẩu..." style="text-align: center; font-size: 16px; letter-spacing: 2px;">
+        </div>
+        <button class="action-btn" onclick="verifyAdminPassword()" style="background-color: #5865F2;">🔓 Xác Nhận Mật Khẩu</button>
+        <div id="status_auth" style="margin-top: 10px; font-weight: bold; font-size: 13px;"></div>
+    </div>
+
+    <!-- Nội dung quản trị (Ẩn đi cho đến khi nhập đúng mật khẩu) -->
+    <div id="contentQuanTri" style="display: none;">
+        <div class="sub-box" style="margin-top: 0;">
+            <label>🧹 Bảo Trì Bảng Làm Việc:</label>
+            <button class="action-btn" onclick="runAdminTask('dondep')" style="background-color: #e74c3c;">🧹 Dọn Dẹp Các Chap "Done QC"</button>
+            <button class="action-btn" onclick="runAdminTask('dongbo')" style="background-color: #3498db;">🔄 Tự Động Điền Bù Lương & Thầu Chính</button>
+            <button class="action-btn" onclick="runAdminTask('reload')" style="background-color: #2ecc71;">⚡ Tải Lại Dữ Liệu Sheets Mới Nhất</button>
+        </div>
+
+        <div class="sub-box">
+            <label>⏰ Dời Deadline Đồng Loạt Toàn Bảng:</label>
+            <div class="form-group" style="margin-top: 8px;">
+                <input type="number" id="admin_doidl_ngay" placeholder="Nhập số ngày muốn cộng thêm cho toàn bộ chap đang chạy (VD: 1 hoặc 2)">
+            </div>
+            <button class="action-btn" onclick="runAdminTask('doidl_tong')" style="background-color: #e67e22;">🚀 Dời Hạn Toàn Bộ Bảng</button>
+        </div>
+        <div id="status_quantri" class="status"></div>
+    </div>
+</div>
+
+    <!-- TAB 10: TRỢ LÝ AI (HỎI AI, DỊCH THỬ, ĐỌC ẢNH RAW) -->
+    <div id="tabAI" class="tab-content">
+        <div class="sub-box" style="margin-top: 0;">
+            <label>🤖 Dịch Thuật Đoạn Văn RAW / Hỏi AI:</label>
+            <div class="form-group" style="margin-top: 8px;">
+                <textarea id="ai_input" rows="3" placeholder="Nhập câu thoại RAW cần dịch hoặc câu hỏi cho AI..."></textarea>
+            </div>
+            <div class="form-group">
+                <input type="text" id="ai_note" placeholder="Ngữ cảnh / Ghi chú nhân vật (không bắt buộc)...">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="action-btn" onclick="runAITask('dichthu')" style="background-color: #1abc9c;">🌐 AI Dịch Thoại RAW</button>
+                <button class="action-btn" onclick="runAITask('hoi')" style="background-color: #5865F2;">💬 Hỏi Trợ Lý AI</button>
+            </div>
+        </div>
+
+        <!-- Phần giao diện Đọc Ảnh RAW trong index.html -->
+<div class="sub-box">
+    <label>🖼️ Đọc Chữ & Dịch Thô Từ Ảnh RAW (OCR):</label>
+    <div class="form-group" style="margin-top: 8px;">
+        <input type="text" id="ai_raw_path" placeholder="Đường dẫn file ảnh RAW..." readonly style="margin-bottom: 8px;">
+        <button class="action-btn" onclick="chonAnhRaw()" style="background-color: #5865F2; margin-bottom: 8px;">📁 Chọn Ảnh</button>
+    </div>
+    
+    <!-- 🟢 Ô NHẬP GHI CHÚ CHO AI -->
+    <div class="form-group">
+        <label style="font-size: 13px; color: #b9bbbe;">Ghi chú / Hướng dẫn thêm cho AI (Tùy chọn):</label>
+        <input type="text" id="ai_raw_note" placeholder="VD: Tập trung dịch bong bóng thoại to ở giữa trước, nhân vật đang tức giận..." style="margin-top: 4px;">
+    </div>
+
+    <button class="action-btn" onclick="chayDocRaw()" style="background-color: #e67e22; margin-top: 10px;">🔍 Quét Chữ & Dịch Ảnh RAW</button>
+</div>
+<div id="ai_raw_result" style="margin-top: 15px; background: #2f3136; padding: 15px; border-radius: 6px; color: #dcddde; white-space: pre-wrap; font-family: monospace; max-height: 400px; overflow-y: auto;"></div>
+
+    <datalist id="truyenList"></datalist>
+
+    <script>
+        let pendingTasksCache = [];
+        let droppedTasksCache = [];
+        const idFields = ['done_id', 'nop_id', 'nv_id', 'nghi_id', 'dl_id', 'doi_id', 'bank_id'];
+
+        function syncDiscordId(val) {
+            if (val) localStorage.setItem('savedDiscordId', val);
+            idFields.forEach(id => {
+                let el = document.getElementById(id);
+                if (el && el.value !== val) el.value = val;
+            });
+        }
+    async function chayDocRaw() {
+            const filePath = document.getElementById('ai_raw_path').value.trim();
+            const noteText = document.getElementById('ai_raw_note').value.trim();
+            const resultDiv = document.getElementById('ai_raw_result');
+
+            if (!filePath) {
+                if (resultDiv) resultDiv.innerText = '⚠️ Vui lòng bấm chọn ảnh RAW trước!';
+                else alert('Vui lòng chọn ảnh RAW trước!');
+                return;
+            }
+
+            if (resultDiv) {
+                resultDiv.innerText = '⏳ Đang quét chữ và dịch ảnh RAW, sếp chờ xíu nhé...';
+                resultDiv.style.color = '#faa61a';
+            }
+
+            // Gọi qua preload bridge xuống main.js để xử lý AI
+            const res = await window.api.docraw({ filePath, note: noteText });
+
+            if (resultDiv) {
+                resultDiv.innerText = res.success ? res.message : res.message;
+                resultDiv.style.color = res.success ? '#dcddde' : '#f04747';
+            } else {
+                alert(res.message);
+            }
+        }
+        function openTab(evt, tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            evt.currentTarget.classList.add('active');
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            let savedId = localStorage.getItem('savedDiscordId');
+            if (savedId) syncDiscordId(savedId);
+            idFields.forEach(id => {
+                let el = document.getElementById(id);
+                if (el) el.addEventListener('input', (e) => syncDiscordId(e.target.value.trim()));
+            });
+
+            document.getElementById('nop_role').addEventListener('change', (e) => {
+                const isQC = (e.target.value === 'QC');
+                document.getElementById('group_nop_note').style.display = isQC ? 'block' : 'none';
+                document.getElementById('group_nop_zip').style.display = isQC ? 'none' : 'block';
+            });
+
+            // Đăng ký nhận tiến trình copy Drive ngay khi mở App
+            window.api.onCopyProgress((data) => {
+                let statusDiv = document.getElementById('status_nopSP');
+                if (statusDiv) {
+                    statusDiv.innerText = `⏳ Đang sao chép ảnh lên Drive Team: ${data.current}/${data.total} file... (Vui lòng không tắt App)`;
+                    statusDiv.style.color = '#faa61a';
+                }
+            });
+
+            try {
+                const danhSach = await window.api.getDanhSachTruyen();
+                const dataList = document.getElementById('truyenList');
+                dataList.innerHTML = '';
+                danhSach.forEach(ten => {
+                    const option = document.createElement('option');
+                    option.value = ten;
+                    dataList.appendChild(option);
+                });
+            } catch (error) {}
+        });
+        async function chonAnhRaw() {
+            // Gọi hàm mở hộp thoại chọn file qua preload bridge
+            const filePath = await window.api.chonAnhRaw(); 
+            if (filePath) {
+                document.getElementById('ai_raw_path').value = filePath;
+            }
+        }
+        async function chooseZipFile() {
+            const path = await window.api.selectFile({
+                filters: [{ name: 'ZIP Archive', extensions: ['zip', 'rar'] }]
+            });
+            if (path) document.getElementById('nop_file_path').value = path;
+        }
+
+        async function chooseRawImage() {
+            const path = await window.api.selectFile({
+                filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }]
+            });
+            if (path) document.getElementById('ai_img_path').value = path;
+        }
+
+        async function checkTasksForTab(tab) {
+            const inputId = (tab === 'xinNghi') ? 'nghi_id' : 'doi_id';
+            const statusId = (tab === 'xinNghi') ? 'status_xinNghi' : 'status_doiDL';
+            const containerId = (tab === 'xinNghi') ? 'khuVucChonChap_xinNghi' : 'khuVucChonChap_doiDL';
+            const listId = (tab === 'xinNghi') ? 'danhSachTask_xinNghi' : 'danhSachTask_doiDL';
+
+            const discordId = document.getElementById(inputId).value.trim();
+            const statusDiv = document.getElementById(statusId);
+
+            if (!discordId) { statusDiv.innerText = '⚠️ Vui lòng nhập ID Discord!'; statusDiv.style.color = '#f04747'; return; }
+
+            statusDiv.innerText = '⏳ Đang quét bảng kiểm tra công việc...'; statusDiv.style.color = '#faa61a';
+            document.getElementById(containerId).style.display = 'none';
+
+            const response = await window.api.getPendingTasks(discordId);
+            if (!response.success) { statusDiv.innerText = response.message; statusDiv.style.color = '#f04747'; return; }
+
+            pendingTasksCache = response.tasks;
+            if (pendingTasksCache.length === 0) {
+                statusDiv.innerText = '🎉 Sếp không vướng bận chap nào cả!';
+                statusDiv.style.color = '#43b581';
+                if (tab === 'xinNghi') document.getElementById(containerId).style.display = 'block';
+                return;
+            }
+
+            let html = '';
+            pendingTasksCache.forEach((task, index) => {
+                let checkId = `${tab}_task_${index}`;
+                html += `<div class="job-item" style="border-left-color: #faa61a;">
+                            <input type="checkbox" id="${checkId}" value="${index}" style="width: auto; margin-right: 8px;">
+                            <label for="${checkId}" style="display: inline; cursor: pointer;">
+                                [${task.role}] ${task.truyenRaw} (Chap ${task.chap}) - Hạn: ${task.dlStr || 'Chưa có'}
+                            </label>
+                         </div>`;
+            });
+            document.getElementById(listId).innerHTML = html;
+            document.getElementById(containerId).style.display = 'block';
+            statusDiv.innerText = `✅ Tìm thấy ${pendingTasksCache.length} task.`; statusDiv.style.color = '#43b581';
+        }
+
+        async function loadMyDeadlines() {
+            const discordId = document.getElementById('dl_id').value.trim();
+            const statusDiv = document.getElementById('status_deadline');
+            const listDiv = document.getElementById('danhSachDeadline');
+
+            if (!discordId) { statusDiv.innerText = '⚠️ Vui lòng nhập ID Discord!'; statusDiv.style.color = '#f04747'; return; }
+
+            statusDiv.innerText = '⏳ Đang lục lọi đống deadline của sếp...'; statusDiv.style.color = '#faa61a';
+            listDiv.innerHTML = '';
+
+            const response = await window.api.getPendingTasks(discordId);
+            if (!response.success) { statusDiv.innerText = response.message; statusDiv.style.color = '#f04747'; return; }
+
+            if (response.tasks.length === 0) {
+                statusDiv.innerText = '🎉 Sếp đang rảnh rỗi, không ôm cái deadline nào cả!';
+                statusDiv.style.color = '#43b581';
+                return;
+            }
+
+            let html = '';
+            response.tasks.forEach(task => {
+                let borderCol = task.isOverdue ? '#f04747' : '#5865F2';
+                let textCol = task.isOverdue ? '#f04747' : '#dcddde';
+                let dlText = task.isOverdue ? `TRỄ HẠN (${task.dlStr})` : `Hạn: ${task.dlStr}`;
+                html += `<div class="job-item" style="border-left-color: ${borderCol};">
+                            <div style="color: ${textCol};">
+                                <strong style="color: #ffffff;">[${task.role}]</strong> ${task.truyenRaw} (Chap ${task.chap})<br>
+                                <span style="font-size: 13px; font-weight: bold; color: ${borderCol};">⏰ ${dlText}</span>
+                            </div>
+                         </div>`;
+            });
+            listDiv.innerHTML = html;
+            statusDiv.innerText = `✅ Sếp đang ôm ${response.tasks.length} deadline. Cố lên nhé!`;
+            statusDiv.style.color = '#43b581';
+        }
+
+        async function checkTeamDeadlines() {
+            const statusDiv = document.getElementById('status_deadline');
+            const listDiv = document.getElementById('danhSachDeadline');
+            listDiv.innerHTML = '';
+            statusDiv.innerText = '⏳ Đang quét hạn toàn bộ bảng làm việc...'; statusDiv.style.color = '#faa61a';
+            const res = await window.api.checkAllDeadlines();
+            statusDiv.innerText = res.message;
+            statusDiv.style.color = res.success ? '#43b581' : '#f04747';
+        }
+
+        async function loadDroppedTasks() {
+            const statusDiv = document.getElementById('status_nhanViec');
+            const listDiv = document.getElementById('danhSachDrop');
+            const btnClaim = document.getElementById('btnClaimDrop');
+            statusDiv.innerText = '⏳ Đang quét kho hàng Drop mới nhất...'; statusDiv.style.color = '#faa61a';
+
+            const res = await window.api.getDroppedTasks();
+            if (!res.success) { statusDiv.innerText = res.message; statusDiv.style.color = '#f04747'; return; }
+
+            droppedTasksCache = res.tasks || [];
+            if (droppedTasksCache.length === 0) {
+                listDiv.innerHTML = '';
+                btnClaim.style.display = 'none';
+                statusDiv.innerText = '🎉 Hiện tại không có chap nào bị Drop tồn đọng!';
+                statusDiv.style.color = '#43b581';
+                return;
+            }
+
+            let html = '';
+            droppedTasksCache.forEach((t, idx) => {
+                // 🟢 Gắn trực tiếp t.id vào thuộc tính value của checkbox
+                html += `<div class="job-item" style="border-left-color: #ed4245;">
+                            <input type="checkbox" id="drop_item_${idx}" value="${t.id}" style="width: auto; margin-right: 8px;">
+                            <label for="drop_item_${idx}" style="display: inline; cursor: pointer;">
+                                [${t.role}] ${t.truyenRaw} (Chap ${t.chap})
+                            </label>
+                         </div>`;
+            });
+            listDiv.innerHTML = html;
+            btnClaim.style.display = 'block';
+            statusDiv.innerText = `📢 Có ${droppedTasksCache.length} job đang chờ người giải cứu!`;
+            statusDiv.style.color = '#43b581';
+        }
+
+        async function claimSelectedDrops() {
+            const discordId = document.getElementById('nv_id').value.trim();
+            const statusDiv = document.getElementById('status_nhanViec');
+            if (!discordId) { statusDiv.innerText = '⚠️ Vui lòng nhập ID Discord!'; statusDiv.style.color = '#f04747'; return; }
+
+            // 🟢 Quét trực tiếp tất cả các checkbox đang được tích chọn trên giao diện HTML
+            const checkedBoxes = document.querySelectorAll('#danhSachDrop input[type="checkbox"]:checked');
+            let selectedIds = [];
+            checkedBoxes.forEach(box => {
+                if (box.value) {
+                    selectedIds.push(box.value);
+                }
+            });
+
+            if (selectedIds.length === 0) { 
+                statusDiv.innerText = '⚠️ Hãy tick chọn ít nhất 1 job Drop!'; 
+                statusDiv.style.color = '#f04747'; 
+                return; 
+            }
+
+            statusDiv.innerText = '⏳ Đang nhận việc Drop...'; statusDiv.style.color = '#faa61a';
+            const res = await window.api.claimDroppedTasks({ discordId, selectedIds });
+            statusDiv.innerText = res.message;
+            statusDiv.style.color = res.success ? '#43b581' : '#f04747';
+            if (res.success) await loadDroppedTasks();
+        }
+        async function viewMyBank() {
+            const discordId = document.getElementById('bank_id').value.trim();
+            const statusDiv = document.getElementById('status_bank');
+            if (!discordId) { statusDiv.innerText = '⚠️ Vui lòng nhập ID Discord!'; statusDiv.style.color = '#f04747'; return; }
+            statusDiv.innerText = '⏳ Đang tra cứu thẻ thành viên...'; statusDiv.style.color = '#faa61a';
+            const res = await window.api.getBankInfo(discordId);
+            statusDiv.innerText = res.message;
+            statusDiv.style.color = res.success ? '#43b581' : '#f04747';
+        }
+
+        async function viewLeaderboard() {
+            const statusDiv = document.getElementById('status_bank');
+            statusDiv.innerText = '⏳ Đang tải Bảng Xếp Hạng...'; statusDiv.style.color = '#faa61a';
+            const res = await window.api.getLeaderboard();
+            statusDiv.innerText = res.message;
+            statusDiv.style.color = res.success ? '#43b581' : '#f04747';
+        }
+
+        async function runAdminTask(action) {
+            const statusDiv = document.getElementById('status_quantri');
+            statusDiv.innerText = '⏳ Hệ thống đang xử lý...'; statusDiv.style.color = '#faa61a';
+            let res;
+            if (action === 'dondep') res = await window.api.cleanDoneQC();
+            else if (action === 'dongbo') res = await window.api.syncSalary();
+            else if (action === 'reload') res = await window.api.reloadData();
+            else if (action === 'doidl_tong') {
+                const soNgay = parseInt(document.getElementById('admin_doidl_ngay').value.trim()) || 0;
+                res = await window.api.extendAllDeadlines(soNgay);
+            }
+            statusDiv.innerText = res.message;
+            statusDiv.style.color = res.success ? '#43b581' : '#f04747';
+        }
+
+        async function runAITask(mode) {
+            const statusDiv = document.getElementById('status_ai');
+            statusDiv.innerText = '🤖 AI đang suy nghĩ...'; statusDiv.style.color = '#faa61a';
+            let res;
+            if (mode === 'hoi') {
+                const cauhoi = document.getElementById('ai_input').value.trim();
+                if (!cauhoi) { statusDiv.innerText = '⚠️ Vui lòng nhập câu hỏi!'; statusDiv.style.color = '#f04747'; return; }
+                res = await window.api.askAI(cauhoi);
+            } else if (mode === 'dichthu') {
+                const doanvan = document.getElementById('ai_input').value.trim();
+                const ghichu = document.getElementById('ai_note').value.trim();
+                if (!doanvan) { statusDiv.innerText = '⚠️ Vui lòng nhập đoạn văn RAW!'; statusDiv.style.color = '#f04747'; return; }
+                res = await window.api.translateAI({ doanvan, ghichu });
+            } else if (mode === 'docraw') {
+                const filePath = document.getElementById('ai_img_path').value.trim();
+                if (!filePath) { statusDiv.innerText = '⚠️ Vui lòng chọn file ảnh RAW!'; statusDiv.style.color = '#f04747'; return; }
+                res = await window.api.ocrRawAI({ filePath });
+            }
+            statusDiv.innerText = res.message;
+            statusDiv.style.color = res.success ? '#43b581' : '#f04747';
+        }
+
+        async function submitTab(type) {
+            let statusDiv, data, apiCall;
+            if (type === 'done') {
+                statusDiv = document.getElementById('status_done');
+                data = {
+                    discordId: document.getElementById('done_id').value.trim(),
+                    truyen: document.getElementById('done_truyen').value.trim(),
+                    chap: document.getElementById('done_chap').value.trim(),
+                    role: document.getElementById('done_role').value
+                };
+                apiCall = window.api.submitDone;
+            } else if (type === 'newChap') {
+                statusDiv = document.getElementById('status_newChap');
+                data = {
+                    truyen: document.getElementById('new_truyen').value.trim(),
+                    chap: document.getElementById('new_chap').value.trim()
+                };
+                apiCall = window.api.addNewChap;
+            } else if (type === 'nopSP') {
+                statusDiv = document.getElementById('status_nopSP');
+                data = {
+                    discordId: document.getElementById('nop_id').value.trim(),
+                    truyen: document.getElementById('nop_truyen').value.trim(),
+                    chap: document.getElementById('nop_chap').value.trim(),
+                    role: document.getElementById('nop_role').value,
+                    link: document.getElementById('nop_link').value.trim(),
+                    filePath: document.getElementById('nop_file_path').value.trim(),
+                    note: document.getElementById('nop_note').value.trim()
+                };
+                if (!data.link && !data.filePath) {
+                    statusDiv.innerText = '⚠️ Vui lòng dán Link Drive hoặc chọn File ZIP!';
+                    statusDiv.style.color = '#f04747';
+                    return;
+                }
+                apiCall = window.api.submitProduct;
+            } else if (type === 'nhanViecRandom') {
+                statusDiv = document.getElementById('status_nhanViec');
+                data = {
+                    discordId: document.getElementById('nv_id').value.trim(),
+                    role: document.getElementById('nv_role').value,
+                    loai: document.getElementById('nv_loai').value,
+                    soluong: parseInt(document.getElementById('nv_soluong').value) || 1
+                };
+                apiCall = window.api.takeRandomJob;
+            } else if (type === 'xinNghi') {
+                statusDiv = document.getElementById('status_xinNghi');
+                let droppedTasks = [];
+                pendingTasksCache.forEach((task, index) => {
+                    if (document.getElementById(`xinNghi_task_${index}`)?.checked) droppedTasks.push(task);
+                });
+                data = {
+                    discordId: document.getElementById('nghi_id').value.trim(),
+                    soNgay: parseInt(document.getElementById('nghi_songay').value.trim()) || 0,
+                    lyDo: document.getElementById('nghi_lydo').value.trim(),
+                    droppedTasks: droppedTasks
+                };
+                if (data.soNgay <= 0) { statusDiv.innerText = '⚠️ Số ngày nghỉ phải lớn hơn 0!'; statusDiv.style.color = '#f04747'; return; }
+                if (!data.lyDo) { statusDiv.innerText = '⚠️ Sếp phải điền lý do xin nghỉ!'; statusDiv.style.color = '#f04747'; return; }
+                apiCall = window.api.submitLeave;
+            } else if (type === 'doiDL') {
+                statusDiv = document.getElementById('status_doiDL');
+                let selectedTasks = [];
+                pendingTasksCache.forEach((task, index) => {
+                    if (document.getElementById(`doiDL_task_${index}`)?.checked) selectedTasks.push(task);
+                });
+                data = {
+                    discordId: document.getElementById('doi_id').value.trim(),
+                    soNgayDoi: parseInt(document.getElementById('doi_songay').value.trim()) || 0,
+                    selectedTasks: selectedTasks
+                };
+                if (selectedTasks.length === 0) { statusDiv.innerText = '⚠️ Hãy tick chọn ít nhất 1 chap để dời hạn!'; statusDiv.style.color = '#f04747'; return; }
+                if (data.soNgayDoi <= 0) { statusDiv.innerText = '⚠️ Số ngày dời phải lớn hơn 0!'; statusDiv.style.color = '#f04747'; return; }
+                apiCall = window.api.extendDeadline;
+            }
+
+            for (let key in data) {
+                if (key === 'note' || key === 'link' || key === 'filePath') continue;
+                if (data[key] === undefined || data[key] === "") {
+                    statusDiv.innerText = '⚠️ Vui lòng điền đủ thông tin bắt buộc!';
+                    statusDiv.style.color = '#f04747';
+                    return;
+                }
+            }
+
+            statusDiv.innerText = '⏳ Hệ thống đang xử lý dữ liệu...';
+            statusDiv.style.color = '#faa61a';
+            const response = await apiCall(data);
+            statusDiv.innerText = response.message;
+            statusDiv.style.color = response.success ? '#43b581' : '#f04747';
+            function verifyAdminPassword() {
+            const pass = document.getElementById('admin_password').value.trim();
+            const statusAuth = document.getElementById('status_auth');
+            if (pass === '070309') {
+                document.getElementById('authQuanTri').style.display = 'none';
+                document.getElementById('contentQuanTri').style.display = 'block';
+            } else {
+                statusAuth.innerText = '❌ Sai mật khẩu quản trị!';
+                statusAuth.style.color = '#f04747';
+            }
+        }
+        }
+    </script>
+</body>
+</html>
