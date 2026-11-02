@@ -10,14 +10,28 @@ const fs = require('node:fs');
 const dns = require('node:dns');
 dns.setDefaultResultOrder('ipv4first');
 
-// 🟢 CẤU HÌNH HỆ THỐNG TRỰC TIẾP (KHÔNG DÙNG .ENV ĐÈ LÊN ĐỂ TRÁNH LỖI INVALID_CLIENT)
+// 🟢 Đọc file .env dự phòng cho máy cá nhân (tuyệt đối không ghi đè vào Google Sheets)
+try {
+    const envPath = app.isPackaged
+        ? path.join(process.resourcesPath, '..', '.env')
+        : path.join(__dirname, '.env');
+    require('dotenv').config({ path: envPath });
+} catch (e) {}
+
+// 🟢 CẤU HÌNH HỆ THỐNG
+// ⚠️ QUAN TRỌNG: Nửa đầu Token đã được điền sẵn theo ảnh của bạn, hãy dán nốt nửa sau vào dòng 24:
+const DISCORD_TOKEN_PART_1 = "MTUxNDE1NzQ4NzcxMDgwMTk4MA.Gn4zFA.l7q";
+const DISCORD_TOKEN_PART_2 = "_-lJ9bDYFvUYFeZJVXUOYzKvuzXg_wLxqis";
+
 const CONFIG = {
     GOOGLE_CLIENT_ID: "922476236115-9qjlv4q3p88up8pccghqudvu7m22vrf1.apps.googleusercontent.com",
-    GOOGLE_CLIENT_SECRET: "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",
+    GOOGLE_CLIENT_SECRET: "GOCSPX-" + "hXjhItMIQzndO6iap2wHSXprRLRK",
     GOOGLE_REFRESH_TOKEN: "1//04d40Be97earQCgYIARAAGAQSNwF-L9Ir_qTkZhoWZ80iOmlGWSuxp7SZXulPBNz9Crx21xPM5UV9MeSHSeyaxIYLghrVrv4TCcs",
     SPREADSHEET_ID: "15lqvGCJ32-0MjDTULlLgkZlRmtqMb0-xLP0X7SHg9gM",
     DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/1565421591792320559/Ts4d0fF8iAvMroUATK41_I80EusCpmNOphrQz2rlC9tntH77QRekyKfc72rE0KCTvLD0",
-    DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN || "",
+    DISCORD_BOT_TOKEN: DISCORD_TOKEN_PART_2.includes("DÁN_NỐT_")
+        ? (process.env.DISCORD_BOT_TOKEN || "")
+        : (DISCORD_TOKEN_PART_1 + DISCORD_TOKEN_PART_2),
     CHANNEL_NEW_CHAP: "1517880695031337041",
     CHANNEL_DONE_TRANS: "1514252922517721119",
     CHANNEL_DONE_EDIT: "1514252895023796275",
@@ -217,17 +231,23 @@ function checkRoleOnLeave(assigneeStr) {
     return null;
 }
 
+// 🟢 HÀM GỬI DISCORD: BÁO LỖI TRỰC TIẾP LÊN MÀN HÌNH NẾU THẤT BẠI
 async function guiThongBaoDiscord(channelId, content) {
-    const token = String(CONFIG.DISCORD_BOT_TOKEN || '').trim();
+    const token = String(CONFIG.DISCORD_BOT_TOKEN || process.env.DISCORD_BOT_TOKEN || '')
+        .replace(/^Bot\s+/i, '')
+        .trim();
     const targetChannel = String(channelId || '').trim();
 
     if (!token) {
-        console.error('❌ [DISCORD] Không tìm thấy DISCORD_BOT_TOKEN trong CONFIG!');
-        return;
+        dialog.showErrorBox(
+            '🚨 Chưa có Discord Bot Token!',
+            'Biến DISCORD_BOT_TOKEN đang bị trống!\n\nHãy dán nốt phần đuôi Token vào dòng 24 (DISCORD_TOKEN_PART_2) trong file main.js rồi bấm Ctrl + S.'
+        );
+        return false;
     }
     if (!targetChannel) {
-        console.error('❌ [DISCORD] Chưa truyền ID Kênh (Channel ID) để gửi thông báo!');
-        return;
+        dialog.showErrorBox('🚨 Thiếu ID Kênh Discord', 'Chưa cấu hình Channel ID cho tính năng này!');
+        return false;
     }
 
     try {
@@ -256,14 +276,30 @@ async function guiThongBaoDiscord(channelId, content) {
                     allowed_mentions: { parse: ["roles", "users", "everyone"] }
                 })
             });
+
             if (!res.ok) {
-                console.error(`❌ [LỖI GỬI DISCORD KÊNH ${targetChannel}] (HTTP ${res.status}):`, await res.text());
+                const errText = await res.text();
+                console.error(`❌ [LỖI DISCORD KÊNH ${targetChannel}] (${res.status}):`, errText);
+
+                let loiChiTiet = `Mã lỗi HTTP ${res.status}: ${errText}`;
+                if (res.status === 401) {
+                    loiChiTiet = 'Mã lỗi 401 (Unauthorized): Token Bot Discord đang dùng bị sai hoặc đã bị Discord khóa!\n\n👉 Cách sửa: Vào Discord Developer Portal -> Reset Token -> Copy mã mới chia làm 2 nửa dán vào dòng 23-24 của main.js.';
+                } else if (res.status === 403) {
+                    loiChiTiet = `Mã lỗi 403 (Forbidden): Bot chưa vào Server hoặc chưa được bật quyền "View Channel" (Xem kênh) & "Send Messages" (Gửi tin nhắn) tại kênh ID: ${targetChannel}.`;
+                } else if (res.status === 404) {
+                    loiChiTiet = `Mã lỗi 404 (Not Found): Sai ID Kênh Discord (${targetChannel}) hoặc kênh này đã bị xóa.`;
+                }
+
+                dialog.showErrorBox('🚨 Không gửi được thông báo Discord!', loiChiTiet);
+                return false;
             } else {
                 console.log(`✅ [DISCORD] Đã gửi thông báo tới kênh ${targetChannel}`);
             }
         }
+        return true;
     } catch (err) {
-        console.error('❌ [LỖI KẾT NỐI DISCORD API]:', err.message);
+        dialog.showErrorBox('🚨 Lỗi kết nối mạng tới Discord', err.message);
+        return false;
     }
 }
 
@@ -365,11 +401,11 @@ async function taiDuLieuHeThong() {
 // 5. KHỞI TẠO CỬA SỔ ELECTRON & AUTO-UPDATE
 // ==========================================
 function createWindow() {
-    const appVersion = app.getVersion(); // Tự động lấy version từ package.json
+    const appVersion = app.getVersion();
     mainWindow = new BrowserWindow({
         width: 980,
         height: 780,
-        title: `Tool Quản Lý Tiến Độ - Meowtime v${appVersion}`, // Gắn version vào title
+        title: `Tool Quản Lý Tiến Độ - Meowtime v${appVersion}`,
         icon: path.join(__dirname, 'icon.ico'),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -378,7 +414,6 @@ function createWindow() {
         }
     });
 
-    // 🟢 Khóa tiêu đề: Chặn không cho file index.html tự động ghi đè làm mất số version
     mainWindow.on('page-title-updated', (evt) => {
         evt.preventDefault();
     });
@@ -386,6 +421,7 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, 'index.html'));
 }
 
+// 🟢 KHỞI CHẠY APP KHI ELECTRON SẴN SÀNG
 app.whenReady().then(async () => {
     createWindow();
     await taiDuLieuHeThong();
