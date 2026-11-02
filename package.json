@@ -1,7 +1,7 @@
 {
   "name": "meowtime-tool",
   "version": "1.0.11",
-  "description": "Tool Báo Cáo Tiến Độ Team Meowtime - 1.0.10",
+  "description": "Tool Báo Cáo Tiến Độ Team Meowtime - 1.0.12",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
