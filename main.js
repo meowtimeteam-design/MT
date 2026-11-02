@@ -1,36 +1,37 @@
 // ==========================================
 // 🚀 HỆ THỐNG MEOWTIME TOOL - BẢN FULL ĐỒNG BỘ 100% VỚI INDEX.HTML
 // ==========================================
-const CONFIG = {
-    GOOGLE_CLIENT_ID: "922476236115-9qjlv4q3p88up8pccghqudvu7m22vrf1.apps.googleusercontent.com",
-    GOOGLE_CLIENT_SECRET: "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",
-    GOOGLE_REFRESH_TOKEN: "1//04d40Be97earQCgYIARAAGAQSNwF-L9Ir_qTkZhoWZ80iOmlGWSuxp7SZXulPBNz9Crx21xPM5UV9MeSHSeyaxIYLghrVrv4TCcs",
-    SPREADSHEET_ID: "15lqvGCJ32-0MjDTULlLgkZlRmtqMb0-xLP0X7SHg9gM",
-    DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/1565421591792320559/Ts4d0fF8iAvMroUATK41_I80EusCpmNOphrQz2rlC9tntH77QRekyKfc72rE0KCTvLD0",
-    DISCORD_BOT_TOKEN: "MTUxNDE1NzQ4NzcxMDgwMTk4MA.GTD3zt.qbDzGwbOfw9m_nlpw6J2SgOc5aF7gcRMCtC3dI",
-    CHANNEL_NEW_CHAP: 1517880695031337041,
-    CHANNEL_DONE_TRANS: 1514252922517721119,
-    CHANNEL_DONE_EDIT: 1514252895023796275,
-    GOOGLE_REFRESH_TOKEN_2: "1//04X7bmrRLsf6QCgYIARAAGAQSNwF-L9IrYC3Anqe8XzzrmbPYIt31ZKpTW2EBUypBiW9uje8-WASeHuWCvoy7VFfe1XxQj-v7fps",
-    GOOGLE_REFRESH_TOKEN_3: "1//04MUwzDQj3COICgYIARAAGAQSNwF-L9Ir5LLcGbO0C3TpZZv6HqCTu6oymhdbp_4bFL4Lrkj8Bj0A0qiPXkhnm9sUe76ti0tulBg",
-    GOOGLE_REFRESH_TOKEN_4: "1//04y-tpmBzoQJHCgYIARAAGAQSNwF-L9IrMIW2wh1DetCL0InEn_zuieUwfXry4j967bVzrY0kywwK75vCOlw_OXJ2dzSvObS5wNY",
-    CHANNEL_NHUONG_CHAP: 1535166839770972220,
-    CHANNEL_NHAN_DEADLINE: 1514252812966428783,
-    CHANNEL_XIN_NGHI: 1535166839770972220,
-    ID_ROLE_BOSS: 1258290926661406771,
-    CHANNEL_DOI_DL: 1514950540151230565,
-    CHANNEL_DONE_QC: 1509818144334680126,
-    GEMINI_API_KEY: "AQ.Ab8RN6IGEgkKKVA8dmo9LoWQ4VxrNjozFL7lVPL0PQFWCG2bmA"
-};
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+app.disableHardwareAcceleration();
+
 const { autoUpdater } = require('electron-updater');
 const path = require('node:path');
 const fs = require('node:fs');
 const dns = require('node:dns');
 dns.setDefaultResultOrder('ipv4first');
 
-// 🟢 Đọc chuẩn file .env trên cả Windows và macOS (tránh lỗi mất kết nối khi đóng gói)
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+// 🟢 CẤU HÌNH HỆ THỐNG TRỰC TIẾP (KHÔNG DÙNG .ENV ĐÈ LÊN ĐỂ TRÁNH LỖI INVALID_CLIENT)
+const CONFIG = {
+    GOOGLE_CLIENT_ID: "922476236115-9qjlv4q3p88up8pccghqudvu7m22vrf1.apps.googleusercontent.com",
+    GOOGLE_CLIENT_SECRET: "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",
+    GOOGLE_REFRESH_TOKEN: "1//04d40Be97earQCgYIARAAGAQSNwF-L9Ir_qTkZhoWZ80iOmlGWSuxp7SZXulPBNz9Crx21xPM5UV9MeSHSeyaxIYLghrVrv4TCcs",
+    SPREADSHEET_ID: "15lqvGCJ32-0MjDTULlLgkZlRmtqMb0-xLP0X7SHg9gM",
+    DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/1565421591792320559/Ts4d0fF8iAvMroUATK41_I80EusCpmNOphrQz2rlC9tntH77QRekyKfc72rE0KCTvLD0",
+    DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN || "",
+    CHANNEL_NEW_CHAP: "1517880695031337041",
+    CHANNEL_DONE_TRANS: "1514252922517721119",
+    CHANNEL_DONE_EDIT: "1514252895023796275",
+    GOOGLE_REFRESH_TOKEN_2: "1//04X7bmrRLsf6QCgYIARAAGAQSNwF-L9IrYC3Anqe8XzzrmbPYIt31ZKpTW2EBUypBiW9uje8-WASeHuWCvoy7VFfe1XxQj-v7fps",
+    GOOGLE_REFRESH_TOKEN_3: "1//04MUwzDQj3COICgYIARAAGAQSNwF-L9Ir5LLcGbO0C3TpZZv6HqCTu6oymhdbp_4bFL4Lrkj8Bj0A0qiPXkhnm9sUe76ti0tulBg",
+    GOOGLE_REFRESH_TOKEN_4: "1//04y-tpmBzoQJHCgYIARAAGAQSNwF-L9IrMIW2wh1DetCL0InEn_zuieUwfXry4j967bVzrY0kywwK75vCOlw_OXJ2dzSvObS5wNY",
+    CHANNEL_NHUONG_CHAP: "1535166839770972220",
+    CHANNEL_NHAN_DEADLINE: "1514252812966428783",
+    CHANNEL_XIN_NGHI: "1535166839770972220",
+    ID_ROLE_BOSS: "1258290926661406771",
+    CHANNEL_DOI_DL: "1514950540151230565",
+    CHANNEL_DONE_QC: "1509818144334680126",
+    GEMINI_API_KEY: "AQ.Ab8RN6IGEgkKKVA8dmo9LoWQ4VxrNjozFL7lVPL0PQFWCG2bmA"
+};
 
 const { google } = require('googleapis');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -69,8 +70,8 @@ const CLIENT_SECRET = (CONFIG.GOOGLE_CLIENT_SECRET || '').trim();
 const refreshTokens = [];
 
 if (CONFIG.GOOGLE_REFRESH_TOKEN) refreshTokens.push(CONFIG.GOOGLE_REFRESH_TOKEN.trim());
-for (let i = 1; i <= 20; i++) {
-    let t = process.env[`GOOGLE_REFRESH_TOKEN_${i}`];
+for (let i = 2; i <= 20; i++) {
+    let t = CONFIG[`GOOGLE_REFRESH_TOKEN_${i}`];
     if (t && t.trim() !== '' && !refreshTokens.includes(t.trim())) {
         refreshTokens.push(t.trim());
     }
@@ -104,6 +105,7 @@ let bankDataMap = {};
 let bangLuongMap = {};
 let bangLuongList = [];
 let isDataLoaded = false;
+let loadingPromise = null;
 
 function extractDriveId(url) {
     if (!url) return null;
@@ -216,12 +218,11 @@ function checkRoleOnLeave(assigneeStr) {
 }
 
 async function guiThongBaoDiscord(channelId, content) {
-    // 🟢 Khớp chuẩn với biến DISCORD_BOT_TOKEN trong .env của sếp
-    const token = (CONFIG.DISCORD_BOT_TOKEN || CONFIG.DISCORD_TOKEN || '').trim();
-    const targetChannel = (channelId || '').trim();
+    const token = String(CONFIG.DISCORD_BOT_TOKEN || '').trim();
+    const targetChannel = String(channelId || '').trim();
 
     if (!token) {
-        console.error('❌ [DISCORD] Không tìm thấy DISCORD_BOT_TOKEN trong file .env!');
+        console.error('❌ [DISCORD] Không tìm thấy DISCORD_BOT_TOKEN trong CONFIG!');
         return;
     }
     if (!targetChannel) {
@@ -230,7 +231,6 @@ async function guiThongBaoDiscord(channelId, content) {
     }
 
     try {
-        // Tự động cắt tin nhắn nếu dài quá 1950 ký tự để Discord không báo lỗi
         const lines = content.split('\n');
         let currentChunk = '';
         const chunks = [];
@@ -251,10 +251,15 @@ async function guiThongBaoDiscord(channelId, content) {
                     'Authorization': `Bot ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ content: chunk })
+                body: JSON.stringify({
+                    content: chunk,
+                    allowed_mentions: { parse: ["roles", "users", "everyone"] }
+                })
             });
             if (!res.ok) {
-                console.error(`❌ [LỖI GỬI DISCORD KÊNH ${targetChannel}]:`, await res.text());
+                console.error(`❌ [LỖI GỬI DISCORD KÊNH ${targetChannel}] (HTTP ${res.status}):`, await res.text());
+            } else {
+                console.log(`✅ [DISCORD] Đã gửi thông báo tới kênh ${targetChannel}`);
             }
         }
     } catch (err) {
@@ -266,104 +271,116 @@ async function guiThongBaoDiscord(channelId, content) {
 // 4. ĐỒNG BỘ DỮ LIỆU TỪ GOOGLE SHEETS
 // ==========================================
 async function taiDuLieuHeThong() {
-    console.log('[DATA] Đang kết nối tới Google Sheets...');
-    try {
-        const [rS, rT, rM, rL] = await Promise.all([
-            sheets.spreadsheets.get({ spreadsheetId: CONFIG.SPREADSHEET_ID, fields: 'sheets(properties(sheetId,title),merges)' }),
-            sheets.spreadsheets.values.get({ spreadsheetId: CONFIG.SPREADSHEET_ID, range: 'Thong_Tin_Truyen!A1:N5000' }),
-            sheets.spreadsheets.values.get({ spreadsheetId: CONFIG.SPREADSHEET_ID, range: 'Thanh_Vien!A1:N5000' }),
-            sheets.spreadsheets.values.get({ spreadsheetId: CONFIG.SPREADSHEET_ID, range: 'BẢNG LƯƠNG!B2:G5000' })
-        ]);
+    if (loadingPromise) return loadingPromise;
+    loadingPromise = (async () => {
+        console.log('[DATA] Đang kết nối tới Google Sheets...');
+        try {
+            const [rS, rT, rM, rL] = await Promise.all([
+                sheets.spreadsheets.get({ spreadsheetId: CONFIG.SPREADSHEET_ID, fields: 'sheets(properties(sheetId,title),merges)' }),
+                sheets.spreadsheets.values.get({ spreadsheetId: CONFIG.SPREADSHEET_ID, range: 'Thong_Tin_Truyen!A1:N5000' }),
+                sheets.spreadsheets.values.get({ spreadsheetId: CONFIG.SPREADSHEET_ID, range: 'Thanh_Vien!A1:N5000' }),
+                sheets.spreadsheets.values.get({ spreadsheetId: CONFIG.SPREADSHEET_ID, range: 'BẢNG LƯƠNG!B2:G5000' })
+            ]);
 
-        if (rT && rT.data) {
-            let tD = [], tM = {};
-            (rT.data.values || []).forEach(r => {
-                if (r[0] && String(r[0]).trim() !== "") {
-                    let g = String(r[0]).trim();
-                    tD.push(g);
-                    tM[xoaRac(g)] = {
-                        tenGoc: g,
-                        loai: r[1] ? String(r[1]).trim().toLowerCase() : "manhwa",
-                        ngonNgu: r[2] ? String(r[2]).trim().toLowerCase() : "",
-                        transChinh: r[6] ? String(r[6]).trim() : "",
-                        luongTrans: parseInt(String(r[7] || "0").replace(/[^\d]/g, '')) || 0,
-                        linkDrive: r[8] ? String(r[8]).trim() : "",
-                        cleanChinh: r[9] ? String(r[9]).trim() : "",
-                        typeChinh: r[10] ? String(r[10]).trim() : "",
-                        luongClean: parseInt(String(r[11] || "0").replace(/[^\d]/g, '')) || 0,
-                        luongType: parseInt(String(r[12] || "0").replace(/[^\d]/g, '')) || 0
-                    };
-                }
-            });
-            danhSachTruyenCache = [...new Set(tD)];
-            thongTinMap = tM;
+            if (rT && rT.data) {
+                let tD = [], tM = {};
+                (rT.data.values || []).forEach(r => {
+                    if (r[0] && String(r[0]).trim() !== "") {
+                        let g = String(r[0]).trim();
+                        tD.push(g);
+                        tM[xoaRac(g)] = {
+                            tenGoc: g,
+                            loai: r[1] ? String(r[1]).trim().toLowerCase() : "manhwa",
+                            ngonNgu: r[2] ? String(r[2]).trim().toLowerCase() : "",
+                            transChinh: r[6] ? String(r[6]).trim() : "",
+                            luongTrans: parseInt(String(r[7] || "0").replace(/[^\d]/g, '')) || 0,
+                            linkDrive: r[8] ? String(r[8]).trim() : "",
+                            cleanChinh: r[9] ? String(r[9]).trim() : "",
+                            typeChinh: r[10] ? String(r[10]).trim() : "",
+                            luongClean: parseInt(String(r[11] || "0").replace(/[^\d]/g, '')) || 0,
+                            luongType: parseInt(String(r[12] || "0").replace(/[^\d]/g, '')) || 0
+                        };
+                    }
+                });
+                danhSachTruyenCache = [...new Set(tD)];
+                thongTinMap = tM;
+            }
+
+            if (rM && rM.data) {
+                thanhVienMap = {};
+                nguocThanhVienMap = {};
+                bankDataMap = {};
+                (rM.data.values || []).forEach((r, idx) => {
+                    let dId = getCell(r, COL_TV.DISCORD).replace(/['"\s]/g, '');
+                    let bD = getCell(r, 1);
+                    if (dId && bD) {
+                        thanhVienMap[dId] = bD;
+                        nguocThanhVienMap[bD.toLowerCase()] = dId;
+                        bankDataMap[dId] = {
+                            row: idx + 1,
+                            role: getCell(r, COL_TV.ROLE),
+                            chuoi: parseInt(getCell(r, COL_TV.CHUOI)) || 0,
+                            ngayCuoi: getCell(r, COL_TV.NGAY),
+                            xu: parseInt(getCell(r, COL_TV.XU)) || 0,
+                            the: parseInt(getCell(r, COL_TV.THE)) || 0,
+                            nghi: getCell(r, COL_TV.NGHI),
+                            treDL: parseInt(getCell(r, COL_TV.TRE_DL)) || 0,
+                            doiDL: parseInt(getCell(r, COL_TV.DOI_DL)) || 0,
+                            luong: parseInt(getCell(r, COL_TV.LUONG)) || 0
+                        };
+                    }
+                });
+            }
+
+            if (rL && rL.data) {
+                bangLuongMap = {};
+                bangLuongList = [];
+                (rL.data.values || []).forEach(r => {
+                    let b = getCell(r, 0);
+                    if (b !== "") {
+                        const bL = b.toLowerCase();
+                        const sC = parseFloat(getCell(r, 1)) || 0;
+                        const lC = getCell(r, 5) || "0";
+                        bangLuongMap[bL] = { soChap: sC, luongCuoi: lC, tenHienThi: b };
+                        bangLuongList.push({ bDanh: bL, tenHienThi: b, soChap: sC, luongCuoi: lC });
+                    }
+                });
+            }
+
+            isDataLoaded = true;
+            console.log('[DATA] ✅ Phân tích dữ liệu xong!');
+            return true;
+        } catch (e) {
+            console.error('❌ LỖI TẢI DỮ LIỆU:', e.message);
+            isDataLoaded = false;
+            return false;
+        } finally {
+            loadingPromise = null;
         }
-
-        if (rM && rM.data) {
-            thanhVienMap = {};
-            nguocThanhVienMap = {};
-            bankDataMap = {};
-            (rM.data.values || []).forEach((r, idx) => {
-                let dId = getCell(r, COL_TV.DISCORD).replace(/['"\s]/g, '');
-                let bD = getCell(r, 1);
-                if (dId && bD) {
-                    thanhVienMap[dId] = bD;
-                    nguocThanhVienMap[bD.toLowerCase()] = dId;
-                    bankDataMap[dId] = {
-                        row: idx + 1,
-                        role: getCell(r, COL_TV.ROLE),
-                        chuoi: parseInt(getCell(r, COL_TV.CHUOI)) || 0,
-                        ngayCuoi: getCell(r, COL_TV.NGAY),
-                        xu: parseInt(getCell(r, COL_TV.XU)) || 0,
-                        the: parseInt(getCell(r, COL_TV.THE)) || 0,
-                        nghi: getCell(r, COL_TV.NGHI),
-                        treDL: parseInt(getCell(r, COL_TV.TRE_DL)) || 0,
-                        doiDL: parseInt(getCell(r, COL_TV.DOI_DL)) || 0,
-                        luong: parseInt(getCell(r, COL_TV.LUONG)) || 0
-                    };
-                }
-            });
-        }
-
-        if (rL && rL.data) {
-            bangLuongMap = {};
-            bangLuongList = [];
-            (rL.data.values || []).forEach(r => {
-                let b = getCell(r, 0);
-                if (b !== "") {
-                    const bL = b.toLowerCase();
-                    const sC = parseFloat(getCell(r, 1)) || 0;
-                    const lC = getCell(r, 5) || "0";
-                    bangLuongMap[bL] = { soChap: sC, luongCuoi: lC, tenHienThi: b };
-                    bangLuongList.push({ bDanh: bL, tenHienThi: b, soChap: sC, luongCuoi: lC });
-                }
-            });
-        }
-
-        isDataLoaded = true;
-        console.log('[DATA] ✅ Phân tích dữ liệu xong!');
-        return true;
-    } catch (e) {
-        console.error('❌ LỖI TẢI DỮ LIỆU:', e.message);
-        isDataLoaded = false;
-        return false;
-    }
+    })();
+    return loadingPromise;
 }
 
 // ==========================================
 // 5. KHỞI TẠO CỬA SỔ ELECTRON & AUTO-UPDATE
 // ==========================================
 function createWindow() {
+    const appVersion = app.getVersion(); // Tự động lấy version từ package.json
     mainWindow = new BrowserWindow({
         width: 980,
         height: 780,
-        title: "Tool Quản Lý Tiến Độ - Meowtime",
+        title: `Tool Quản Lý Tiến Độ - Meowtime v${appVersion}`, // Gắn version vào title
         icon: path.join(__dirname, 'icon.ico'),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false
         }
+    });
+
+    // 🟢 Khóa tiêu đề: Chặn không cho file index.html tự động ghi đè làm mất số version
+    mainWindow.on('page-title-updated', (evt) => {
+        evt.preventDefault();
     });
 
     mainWindow.loadFile(path.join(__dirname, 'index.html'));
@@ -412,9 +429,10 @@ ipcMain.handle('select-file', async (event, options) => {
     return res.filePaths[0];
 });
 
-// --- QUÉT CÔNG VIỆC ĐANG ÔM (Hỗ trợ truyền thẳng chuỗi discordId hoặc object) ---
 ipcMain.handle('get-pending-tasks', async (event, arg) => {
     if (!isDataLoaded) await taiDuLieuHeThong();
+    if (!isDataLoaded) return { success: false, message: '❌ Chưa kết nối được với Google Sheets! Vui lòng kiểm tra mạng hoặc bấm Làm mới.' };
+
     const rawId = typeof arg === 'string' ? arg : (arg && arg.discordId ? arg.discordId : '');
     const cleanId = String(rawId).replace(/['"\s]/g, '');
     const bietDanh = thanhVienMap[cleanId];
@@ -596,15 +614,12 @@ ipcMain.handle('done', async (event, payload) => {
         let finalMsg = `✅ <@${discordId}> (**${bietDanh}**) đã báo DONE:\n${rD.join('\n')}\n💰 Lương: +${lC.toLocaleString()} đ | Xu: +${doneCount * 10}`;
         if (tTypeList.length > 0) finalMsg += `\n⏩ Mời **Type:** ${tTypeList.join(', ')} nhận việc.`;
 
-        // 🟢 Phân luồng kênh Trans và kênh Edit theo đúng .env
         const roleCheck = String(payload.role || payload.vitri || '').toUpperCase();
-        const doneChannel = (roleCheck === 'TRANS') 
-            ? CONFIG.CHANNEL_DONE_TRANS 
+        const doneChannel = (roleCheck === 'TRANS')
+            ? CONFIG.CHANNEL_DONE_TRANS
             : CONFIG.CHANNEL_DONE_EDIT;
 
         await guiThongBaoDiscord(doneChannel, finalMsg);
-        return { success: true, message: finalMsg };
-        if (CONFIG.NOTIFY_CHANNEL_ID) await guiThongBaoDiscord(CONFIG.NOTIFY_CHANNEL_ID, finalMsg);
         return { success: true, message: finalMsg };
     } catch (err) {
         return { success: false, message: '❌ Lỗi báo Done: ' + err.message };
@@ -829,7 +844,6 @@ ipcMain.handle('chapmoi', async (event, payload) => {
             return str.split(',').map(s => {
                 let ten = s.trim();
                 let id = nguocThanhVienMap[ten.toLowerCase()];
-                // Nếu tìm thấy ID Discord trong bảng Thành Viên thì tag xanh <@ID>, ngược lại in đậm tên
                 return id ? `<@${id}>` : `**${ten}**`;
             }).join(', ');
         };
@@ -840,8 +854,6 @@ ipcMain.handle('chapmoi', async (event, payload) => {
         let showDL = (f, l) => numChaps > 1 ? `${displayDL(f)} ➡️ ${displayDL(l)}` : `${displayDL(f)}`;
         let replyMsg = `🎉 **CẬP NHẬT CHAP MỚI** 🎉\n🎬 **${info.tenGoc}** vừa ra lò Chap: **${chapList.join(', ')}**!\n\n🎯 **GỌI TÊN NHẬN HÀNG:**\n- Trans: ${tagTransStr} (DL: **${showDL(dlFirstTr, dlLastTr)}**)\n- Clean: ${tagCleanStr} (DL: **${showDL(dlFirstCl, dlLastCl)}** - Cùng hạn Trans)\n- Type: ${tagTypeStr} (DL: **${showDL(dlFirstTy, dlLastTy)}** - Lệch 1 ngày)\n\n*(Đã thêm ${numChaps} chap vào hệ thống)*`;
         await guiThongBaoDiscord(CONFIG.CHANNEL_NEW_CHAP, replyMsg);
-        return { success: true, message: replyMsg };
-        if (CONFIG.NOTIFY_CHANNEL_ID) await guiThongBaoDiscord(CONFIG.NOTIFY_CHANNEL_ID, replyMsg);
         return { success: true, message: replyMsg };
     } catch (err) {
         return { success: false, message: '❌ Lỗi thêm chap mới: ' + err.message };
@@ -939,14 +951,11 @@ ipcMain.handle('nopsanpham', async (event, payload) => {
                         }]
                     }
                 });
+            }
+
             const qcMsg = `✅ <@${discordId}> (**${bietDanh}**) đã gắn link QC cho **${thongTin.tenGoc} - Chap ${chapInput}**!\nTrạng thái: **${isLate ? "🔴 " + noteText : "🟢 Đúng hạn"}**${noteInput ? `\n📝 Note: ${noteInput}` : ""}\n🔗 Link: ${linkInput}`;
             await guiThongBaoDiscord(CONFIG.CHANNEL_DONE_QC, qcMsg);
             return { success: true, message: qcMsg };
-            }
-            return {
-                success: true,
-                message: `✅ Đã gắn link Bảng Phụ cho **${thongTin.tenGoc} - Chap ${chapInput}** thành công!\nTrạng thái: **${isLate ? "🔴 " + noteText : "🟢 Đúng hạn"}**`
-            };
         }
 
         // 🟢 NẾU LÀ CÁC ROLE KHÁC -> UPLOAD ZIP HOẶC COPY FOLDER DRIVE
@@ -1134,17 +1143,15 @@ ipcMain.handle('nopsanpham', async (event, payload) => {
         } else if (viTriInput === 'FIX') {
             msgUpload += `\n\n*(Đã nộp vào thư mục Đã fix!)*`;
         }
-        const nopChannel = (viTriInput === 'TRANS') 
-            ? CONFIG.CHANNEL_DONE_TRANS 
+        const nopChannel = (viTriInput === 'TRANS')
+            ? CONFIG.CHANNEL_DONE_TRANS
             : CONFIG.CHANNEL_DONE_EDIT;
 
         await guiThongBaoDiscord(nopChannel, `📦 <@${discordId}> (**${bietDanh}**) vừa nộp sản phẩm **[${viTriInput}]** truyện **${thongTin.tenGoc} - Chap ${chapInput}**:\n` + msgUpload);
         return { success: true, message: msgUpload };
-        return { success: true, message: msgUpload };
     } catch (err) {
         return { success: false, message: '❌ Lỗi nộp sản phẩm: ' + err.message };
     }
-    
 });
 
 // --- TAB 4: NHẬN VIỆC RANDOM (NHANVIEC) ---
@@ -1307,7 +1314,6 @@ ipcMain.handle('xinnghi', async (event, payload) => {
         const soNgay = parseInt(payload.soNgay || payload.songay) || 1;
         const lyDo = payload.lyDo || '';
         const droppedListFromUI = payload.droppedTasks || [];
-        const droppedIds = new Set(droppedListFromUI.map(t => typeof t === 'string' ? t : t.id));
 
         let vnToday = layNgayVN();
         let nghiDate = new Date(vnToday.getTime() + soNgay * 24 * 3600 * 1000);
@@ -1351,7 +1357,14 @@ ipcMain.handle('xinnghi', async (event, payload) => {
             );
         }
 
-        // 🟢 BẮN THÔNG BÁO XIN NGHỈ VÀ NHƯỢNG CHAP LÊN DISCORD
+        if (dU.length > 0) {
+            await sheets.spreadsheets.values.batchUpdate({
+                spreadsheetId: CONFIG.SPREADSHEET_ID,
+                requestBody: { valueInputOption: 'USER_ENTERED', data: dU }
+            });
+            global.droppedPool.push(...droppedTasks);
+        }
+
         if (droppedTasks.length > 0 && CONFIG.CHANNEL_NHUONG_CHAP) {
             let msgNhuong = `📢 **CÓ HÀNG DROP TỪ THẦU CỨNG!** 📢\n<@${discordId}> (**${bietDanh}**) đã xin nghỉ phép đến ${ngayVe} và nhượng lại:\n`;
             droppedTasks.forEach(t => { msgNhuong += `- **[${t.role}]** ${t.truyenRaw} (Chap ${t.chap})\n`; });
@@ -1359,7 +1372,7 @@ ipcMain.handle('xinnghi', async (event, payload) => {
         }
 
         if (CONFIG.CHANNEL_XIN_NGHI) {
-            const bossTag = CONFIG.ID_ROLE_BOSS ? `<@&${CONFIG.ID_ROLE_BOSS.trim()}> ` : '';
+            const bossTag = CONFIG.ID_ROLE_BOSS ? `<@&${String(CONFIG.ID_ROLE_BOSS).trim()}> ` : '';
             let msgXinNghi = `🏖️ ${bossTag}**ĐƠN XIN NGHỈ PHÉP** 🏖️\n` +
                               `👤 **Nhân sự:** <@${discordId}> (**${bietDanh}**)\n` +
                               `⏳ **Thời gian:** Xin nghỉ ${soNgay} ngày (Dự kiến quay lại: **${ngayVe}**)\n` +
@@ -1376,7 +1389,6 @@ ipcMain.handle('xinnghi', async (event, payload) => {
     }
 });
 
-// --- KHO HÀNG DROP: Quét chuẩn xác từng dòng, chống mượn nhầm chap ---
 // --- 1. KHO HÀNG DROP: Quét và lưu vào bộ nhớ tạm toàn cục ---
 ipcMain.handle('get-dropped-tasks', async () => {
     try {
@@ -1417,7 +1429,6 @@ ipcMain.handle('get-dropped-tasks', async () => {
             });
         }
 
-        // 🟢 Lưu trực tiếp danh sách quét được vào biến toàn cục để lệnh hốt nhận diện được
         global.currentDropList = droppedList;
         return { success: true, tasks: droppedList };
     } catch (err) {
@@ -1467,7 +1478,6 @@ ipcMain.handle('nhan-drop', async (event, { discordId, selectedIds }) => {
             requestBody: { valueInputOption: 'USER_ENTERED', data: dataToUpdateJob }
         });
 
-        // 🟢 BẮN THÔNG BÁO LÊN KÊNH NHẬN DEADLINE TRÊN DISCORD
         let notifyMsg = `⚡ <@${cleanId}> (**${bietDanh}**) vừa hốt thành công các job Drop:\n${resultStrs.join('\n')}\n📅 Hạn DL mới: **${displayDL(dlStr)}**`;
         await guiThongBaoDiscord(CONFIG.CHANNEL_NHAN_DEADLINE, notifyMsg);
 
@@ -1820,7 +1830,7 @@ ipcMain.handle('bangxephang', async () => {
 
 ipcMain.handle('ai', async (event, { cauhoi }) => {
     try {
-        if (!genAI) return { success: false, message: '❌ Chưa cấu hình GEMINI_API_KEY trong file .env!' };
+        if (!genAI) return { success: false, message: '❌ Chưa cấu hình GEMINI_API_KEY!' };
         const result = await genAI.getGenerativeModel({ model: "gemini-3.5-flash" }).generateContent(cauhoi);
         return { success: true, message: (await result.response).text() };
     } catch (err) {
@@ -1830,7 +1840,7 @@ ipcMain.handle('ai', async (event, { cauhoi }) => {
 
 ipcMain.handle('dichthu', async (event, { doanvan, ghichu }) => {
     try {
-        if (!genAI) return { success: false, message: '❌ Chưa cấu hình GEMINI_API_KEY trong file .env!' };
+        if (!genAI) return { success: false, message: '❌ Chưa cấu hình GEMINI_API_KEY!' };
         const prompt = `Dịch đoạn văn RAW manga/manhwa sau sang tiếng Việt tự nhiên:\nRAW: "${doanvan}"\nNgữ cảnh: "${ghichu || 'Không có'}"`;
         const result = await genAI.getGenerativeModel({ model: "gemini-3.5-flash" }).generateContent(prompt);
         return { success: true, message: (await result.response).text() };
@@ -1838,9 +1848,8 @@ ipcMain.handle('dichthu', async (event, { doanvan, ghichu }) => {
         return { success: false, message: '❌ Lỗi dịch thuật AI: ' + err.message };
     }
 });
-// Thêm vào trong main.js
+
 ipcMain.handle('chonAnhRaw', async () => {
-    const { dialog } = require('electron');
     const result = await dialog.showOpenDialog({
         properties: ['openFile'],
         filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp'] }]
@@ -1850,9 +1859,10 @@ ipcMain.handle('chonAnhRaw', async () => {
     }
     return null;
 });
+
 ipcMain.handle('docraw', async (event, { filePath, note }) => {
     try {
-        if (!genAI) return { success: false, message: '❌ Chưa cấu hình GEMINI_API_KEY trong file .env!' };
+        if (!genAI) return { success: false, message: '❌ Chưa cấu hình GEMINI_API_KEY!' };
         if (!filePath) return { success: false, message: '❌ Vui lòng chọn file hình ảnh RAW!' };
         
         const imgBase64 = fs.readFileSync(filePath).toString('base64');
@@ -1860,7 +1870,6 @@ ipcMain.handle('docraw', async (event, { filePath, note }) => {
         if (filePath.toLowerCase().endsWith('.jpg') || filePath.toLowerCase().endsWith('.jpeg')) mime = 'image/jpeg';
         else if (filePath.toLowerCase().endsWith('.webp')) mime = 'image/webp';
 
-        // 🟢 Tạo câu lệnh prompt thông minh kết hợp ghi chú của sếp
         let promptText = "Đọc văn bản trong ảnh RAW này (bao gồm bong bóng thoại, box tự sự, SFX) và dịch thô sang tiếng Việt theo từng khu vực rõ ràng.";
         if (note && note.trim() !== "") {
             promptText += `\n\n📌 GHI CHÚ / HƯỚNG DẪN TỪ QUẢN TRỊ VIÊN:\n"${note.trim()}"\nHãy đặc biệt lưu ý và ưu tiên thực hiện theo hướng dẫn này khi phân tích và dịch ảnh!`;
