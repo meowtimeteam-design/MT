@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 permissions:
-  contents: write
+  contents: write # Cấp quyền ghi trực tiếp, không cần token ngoài
 
 jobs:
   release:
@@ -30,4 +30,4 @@ jobs:
       - name: Build and Publish App
         run: npx electron-builder --publish always
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Ép dùng token mặc định cực sạch của GitHub
