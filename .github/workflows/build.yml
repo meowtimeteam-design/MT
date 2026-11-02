@@ -3,14 +3,17 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*' # Tự động chạy khi sếp tạo tag version mới (VD: v1.0.5)
+      - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
   release:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, macos-latest] # Tự động chạy cả trên máy ảo Windows và macOS
+        os: [windows-latest, macos-latest]
 
     steps:
       - name: Checkout code
@@ -19,7 +22,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Install dependencies
         run: npm install
@@ -27,5 +30,4 @@ jobs:
       - name: Build and Publish App
         run: npx electron-builder --publish always
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }} # 🟢 Tự động lấy token bảo mật từ GitHub Secrets đưa vào lúc build
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }} # Nếu sếp muốn giấu luôn cả key AI
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
