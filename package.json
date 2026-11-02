@@ -1,6 +1,6 @@
 {
   "name": "meowtime-tool",
-  "version": "1.0.4",
+  "version": "1.0.7",
   "description": "Tool Báo Cáo Tiến Độ Team Meowtime",
   "main": "main.js",
   "scripts": {
