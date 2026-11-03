@@ -326,7 +326,6 @@
             document.getElementById('nop_role').addEventListener('change', (e) => {
                 const isQC = (e.target.value === 'QC');
                 document.getElementById('group_nop_note').style.display = isQC ? 'block' : 'none';
-                document.getElementById('group_nop_zip').style.display = isQC ? 'none' : 'block';
             });
 
             window.api.onCopyProgress((data) => {
