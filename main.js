@@ -896,8 +896,7 @@ ipcMain.handle('chapmoi', async (event, payload) => {
     }
 });
 
-// --- TAB 3: NỘP SẢN PHẨM (Tích hợp cả Copy Folder Drive, Nộp File Zip & Gắn Link QC Bảng Phụ) ---
-// --- TAB 3: NỘP SẢN PHẨM (Tích hợp cho cả Trans, Clean, Type, Edit và QC) ---
+// --- TAB 3: NỘP SẢN PHẨM (Tích hợp cho cả Trans, Clean, Type, Edit, Fix và QC) ---
 ipcMain.handle('nopsanpham', async (event, payload) => {
     try {
         if (!isDataLoaded) await taiDuLieuHeThong();
@@ -916,7 +915,10 @@ ipcMain.handle('nopsanpham', async (event, payload) => {
         const thongTin = thongTinMap[tenTruyenInput];
         if (!thongTin) return { success: false, message: '❌ Không tìm thấy thông tin truyện.' };
 
-        // 🟢 NẾU LÀ ROLE KHÁC FIX -> UPLOAD ZIP HOẶC COPY FOLDER DRIVE (Áp dụng chung cho cả QC, Clean, Type, Trans)
+        // 🟢 Khai báo biến msgUpload ở phạm vi toàn hàm để không bao giờ bị "not defined"
+        let msgUpload = "";
+
+        // 1. NẾU LÀ ROLE KHÁC FIX -> UPLOAD ZIP HOẶC COPY FOLDER DRIVE
         if (viTriInput !== 'FIX') {
             if (!linkInput && !zipFilePath) return { success: false, message: '❌ Vui lòng dán Link Drive hoặc chọn File Zip!' };
             if (linkInput && !linkInput.startsWith('http')) return { success: false, message: '❌ Link phải bắt đầu bằng http!' };
@@ -963,7 +965,6 @@ ipcMain.handle('nopsanpham', async (event, payload) => {
                 return { success: false, message: `❌ Lỗi truy cập/tạo folder Drive: ${err.message}` };
             }
 
-            let msgUpload = "";
             if (zipFilePath) {
                 try {
                     const fileName = path.basename(zipFilePath);
@@ -1012,7 +1013,7 @@ ipcMain.handle('nopsanpham', async (event, payload) => {
                 }
             }
 
-            // 🟢 TỰ ĐỘNG CẬP NHẬT BẢNG PHỤ (HOẶC BẢNG CHÍNH) KHI QC / EDIT / NỘP SẢN PHẨM
+            // Xử lý riêng cho vị trí QC: gắn link vào Bảng Phụ
             if (viTriInput === 'QC') {
                 const sheet2Tab = (thongTin.loai && thongTin.loai.toLowerCase().includes('manga')) ? 'MANGA' : 'MANHWA';
                 const [resWork2, resSheet2] = await Promise.all([
@@ -1084,11 +1085,17 @@ ipcMain.handle('nopsanpham', async (event, payload) => {
                             }
                         });
                     }
+
+                    msgUpload += `\n📌 Đã gắn link Bảng Quản Lý (${sheet2Tab}): **${isLate ? "🔴 " + noteText : "🟢 Đúng hạn"}**`;
+                    if (noteInput) msgUpload += `\n📝 Ghi chú: ${noteInput}`;
                 }
             }
+        } else {
+            // Trường hợp là vị trí FIX
+            msgUpload = `🔧 **ĐÃ FIX XONG:** Nộp sản phẩm vào thư mục Fix cho **${thongTin.tenGoc} - Chap ${chapInput}**`;
         }
 
-        // 🟢 PHÂN LUỒNG KÊNH GỬI THÔNG BÁO DISCORD TƯƠNG ỨNG
+        // 2. PHÂN LUỒNG KÊNH DISCORD
         let targetChannel = CONFIG.CHANNEL_DONE_EDIT;
         if (viTriInput === 'TRANS') targetChannel = CONFIG.CHANNEL_DONE_TRANS;
         else if (viTriInput === 'QC') targetChannel = CONFIG.CHANNEL_DONE_QC;
