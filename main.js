@@ -886,9 +886,9 @@ ipcMain.handle('chapmoi', async (event, payload) => {
         let tagTransStr = transLeave ? `Trống (*${transLeave.name} nghỉ*)` : getTag(info.transChinh);
         let tagCleanStr = info.cleanChinh ? (cleanLeave ? `Trống (*${cleanLeave.name} nghỉ*)` : getTag(info.cleanChinh)) : "Chờ";
         let tagTypeStr = info.typeChinh ? (typeLeave ? `Trống (*${typeLeave.name} nghỉ*)` : getTag(info.typeChinh)) : "Chờ";
-
+        let rawLinkStr = info.linkDrive ? `\n\n🔗 [Nhấn vào đây để tải RAW](${info.linkDrive})` : "";
         let showDL = (f, l) => numChaps > 1 ? `${displayDL(f)} ➡️ ${displayDL(l)}` : `${displayDL(f)}`;
-        let replyMsg = `🎉 **CẬP NHẬT CHAP MỚI** 🎉\n🎬 **${info.tenGoc}** vừa ra lò Chap: **${chapList.join(', ')}**!\n\n🎯 **GỌI TÊN NHẬN HÀNG:**\n- Trans: ${tagTransStr} (DL: **${showDL(dlFirstTr, dlLastTr)}**)\n- Clean: ${tagCleanStr} (DL: **${showDL(dlFirstCl, dlLastCl)}** - Cùng hạn Trans)\n- Type: ${tagTypeStr} (DL: **${showDL(dlFirstTy, dlLastTy)}** - Lệch 1 ngày)\n\n*(Đã thêm ${numChaps} chap vào hệ thống)*`;
+        let replyMsg = `🎉 **CẬP NHẬT CHAP MỚI** 🎉\n🎬 **${info.tenGoc}** vừa ra lò Chap: **${chapList.join(', ')}**!\n\n🎯 **GỌI TÊN NHẬN HÀNG:**\n- Trans: ${tagTransStr} (DL: **${showDL(dlFirstTr, dlLastTr)}**)\n- Clean: ${tagCleanStr} (DL: **${showDL(dlFirstCl, dlLastCl)}** - Cùng hạn Trans)\n- Type: ${tagTypeStr} (DL: **${showDL(dlFirstTy, dlLastTy)}** - Lệch 1 ngày)${rawLinkStr}\n\n*(Đã thêm ${numChaps} chap vào hệ thống)*`;
         await guiThongBaoDiscord(CONFIG.CHANNEL_NEW_CHAP, replyMsg);
         return { success: true, message: replyMsg };
     } catch (err) {
