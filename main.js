@@ -519,7 +519,7 @@ ipcMain.handle('get-pending-tasks', async (event, arg) => {
     }
 });
 
-// --- TAB 1: BÁO DONE ---
+// --- TAB 1: BÁO DONE (Tự động nhận diện kênh Trans/Edit thông minh) ---
 ipcMain.handle('done', async (event, payload) => {
     try {
         if (!isDataLoaded) await taiDuLieuHeThong();
@@ -537,6 +537,7 @@ ipcMain.handle('done', async (event, payload) => {
         const chapRaw = String(payload.chap || payload.sochap || '').trim();
         let targetIds = payload.taskIds || [];
 
+        // Fallback: Xử lý nếu người dùng báo tay (không qua giao diện tick chọn)
         if (targetIds.length === 0 && tenTruyenRaw && chapRaw) {
             const normTruyen = xoaRac(tenTruyenRaw).substring(0, 50);
             let chapList = chapRaw.includes('-')
@@ -559,16 +560,22 @@ ipcMain.handle('done', async (event, payload) => {
         }
 
         if (targetIds.length === 0) {
-            return { success: false, message: '❌ Vui lòng nhập đầy đủ Tên truyện và Số chap!' };
+            return { success: false, message: '❌ Vui lòng nhập đầy đủ Tên truyện và Số chap hoặc tick chọn task!' };
         }
 
         let dU = [], rD = [], lC = 0, vnToday = layNgayVN(), tTypeList = [], lateCount = 0, doneCount = 0;
+        
+        // 🟢 Cờ nhận diện kênh: Nếu có làm Trans thì ném vào kênh Trans, ngược lại ném vào kênh Edit
+        let hasTrans = false; 
 
         for (let v of targetIds) {
             let target = rowMap[v];
             if (!target) continue;
             let rI = target.rowIndex;
             let role = target.role;
+
+            // Đánh dấu nếu phát hiện có task TRANS được tick
+            if (role === 'TRANS') hasTrans = true;
 
             let curDone = getCell(target.r, COL[`DONE_${role}`]).toLowerCase();
             if (curDone === 'x' || curDone === 'true') {
@@ -625,7 +632,7 @@ ipcMain.handle('done', async (event, payload) => {
         }
 
         if (doneCount === 0) {
-            return { success: false, message: rD.length > 0 ? rD.join('\n') : '❌ Không tìm thấy Chap tương ứng trên Bảng Làm Việc! Hãy kiểm tra lại Tên Truyện và Số Chap.' };
+            return { success: false, message: rD.length > 0 ? rD.join('\n') : '❌ Không tìm thấy Chap tương ứng trên Bảng Làm Việc! Hãy kiểm tra lại.' };
         }
 
         let bD = bankDataMap[discordId];
@@ -650,10 +657,8 @@ ipcMain.handle('done', async (event, payload) => {
         let finalMsg = `✅ <@${discordId}> (**${bietDanh}**) đã báo DONE:\n${rD.join('\n')}\n💰 Lương: +${lC.toLocaleString()} đ | Xu: +${doneCount * 10}`;
         if (tTypeList.length > 0) finalMsg += `\n⏩ Mời **Type:** ${tTypeList.join(', ')} nhận việc.`;
 
-        const roleCheck = String(payload.role || payload.vitri || '').toUpperCase();
-        const doneChannel = (roleCheck === 'TRANS')
-            ? CONFIG.CHANNEL_DONE_TRANS
-            : CONFIG.CHANNEL_DONE_EDIT;
+        // 🟢 QUYẾT ĐỊNH KÊNH GỬI DỰA VÀO CỜ HÀSTRANS ĐÃ QUÉT ĐƯỢC
+        const doneChannel = hasTrans ? CONFIG.CHANNEL_DONE_TRANS : CONFIG.CHANNEL_DONE_EDIT;
 
         await guiThongBaoDiscord(doneChannel, finalMsg);
         return { success: true, message: finalMsg };
@@ -896,7 +901,7 @@ ipcMain.handle('chapmoi', async (event, payload) => {
     }
 });
 
-// --- TAB 3: NỘP SẢN PHẨM (Tích hợp cho cả Trans, Clean, Type, Edit, Fix và QC) ---
+// --- TAB 3: NỘP SẢN PHẨM (Tích hợp hoàn chỉnh Drive cho Trans, Clean, Type, Edit, QC và FIX) ---
 ipcMain.handle('nopsanpham', async (event, payload) => {
     try {
         if (!isDataLoaded) await taiDuLieuHeThong();
@@ -915,190 +920,198 @@ ipcMain.handle('nopsanpham', async (event, payload) => {
         const thongTin = thongTinMap[tenTruyenInput];
         if (!thongTin) return { success: false, message: '❌ Không tìm thấy thông tin truyện.' };
 
-        // 🟢 Khai báo biến msgUpload ở phạm vi toàn hàm để không bao giờ bị "not defined"
         let msgUpload = "";
 
-        // 1. NẾU LÀ ROLE KHÁC FIX -> UPLOAD ZIP HOẶC COPY FOLDER DRIVE
-        if (viTriInput !== 'FIX') {
-            if (!linkInput && !zipFilePath) return { success: false, message: '❌ Vui lòng dán Link Drive hoặc chọn File Zip!' };
-            if (linkInput && !linkInput.startsWith('http')) return { success: false, message: '❌ Link phải bắt đầu bằng http!' };
+        // Bắt buộc kiểm tra có truyền file hoặc link (áp dụng cho TOÀN BỘ vị trí bao gồm cả FIX)
+        if (!linkInput && !zipFilePath) return { success: false, message: '❌ Vui lòng dán Link Drive hoặc chọn File Zip!' };
+        if (linkInput && !linkInput.startsWith('http')) return { success: false, message: '❌ Link phải bắt đầu bằng http!' };
 
-            const parentFolderId = extractDriveId(thongTin.linkDrive);
-            if (!parentFolderId) return { success: false, message: '❌ Cột "Link Drive" của truyện này đang trống hoặc không hợp lệ.' };
+        const parentFolderId = extractDriveId(thongTin.linkDrive);
+        if (!parentFolderId) return { success: false, message: '❌ Cột "Link Drive" của truyện này đang trống hoặc không hợp lệ.' };
 
-            const { uploadDrive, accNum } = getUploadDrive();
-            let chapFolderId, roleFolderId, roleFolderLink;
-            const chapFolderName = `${chapInput}`;
-            const roleFolderName = viTriInput === 'QC' ? 'QC' : viTriInput.toUpperCase();
+        const { uploadDrive, accNum } = getUploadDrive();
+        let chapFolderId, roleFolderId, roleFolderLink;
+        const chapFolderName = `${chapInput}`;
+        // Tự động định danh tên folder theo Role, nếu là FIX thì tạo folder tên 'FIX'
+        const roleFolderName = viTriInput === 'QC' ? 'QC' : (viTriInput === 'FIX' ? 'FIX' : viTriInput.toUpperCase());
 
-            try {
-                const chapSearch = await uploadDrive.files.list({
-                    q: `'${parentFolderId}' in parents and name = '${chapFolderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-                    fields: 'files(id)'
+        try {
+            // 1. Tạo/Tìm Folder Chap
+            const chapSearch = await uploadDrive.files.list({
+                q: `'${parentFolderId}' in parents and name = '${chapFolderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+                fields: 'files(id)'
+            });
+            if (chapSearch.data.files && chapSearch.data.files.length > 0) {
+                chapFolderId = chapSearch.data.files[0].id;
+            } else {
+                const folder = await uploadDrive.files.create({
+                    resource: { name: chapFolderName, mimeType: 'application/vnd.google-apps.folder', parents: [parentFolderId] },
+                    fields: 'id'
                 });
-                if (chapSearch.data.files && chapSearch.data.files.length > 0) {
-                    chapFolderId = chapSearch.data.files[0].id;
-                } else {
-                    const folder = await uploadDrive.files.create({
-                        resource: { name: chapFolderName, mimeType: 'application/vnd.google-apps.folder', parents: [parentFolderId] },
-                        fields: 'id'
-                    });
-                    chapFolderId = folder.data.id;
-                }
+                chapFolderId = folder.data.id;
+            }
 
-                const roleSearch = await uploadDrive.files.list({
-                    q: `'${chapFolderId}' in parents and name = '${roleFolderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-                    fields: 'files(id, webViewLink)'
+            // 2. Tạo/Tìm Folder Role con (TRANS, CLEAN, QC, FIX...)
+            const roleSearch = await uploadDrive.files.list({
+                q: `'${chapFolderId}' in parents and name = '${roleFolderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+                fields: 'files(id, webViewLink)'
+            });
+            if (roleSearch.data.files && roleSearch.data.files.length > 0) {
+                roleFolderId = roleSearch.data.files[0].id;
+                roleFolderLink = roleSearch.data.files[0].webViewLink;
+            } else {
+                const folderRole = await uploadDrive.files.create({
+                    resource: { name: roleFolderName, mimeType: 'application/vnd.google-apps.folder', parents: [chapFolderId] },
+                    fields: 'id, webViewLink'
                 });
-                if (roleSearch.data.files && roleSearch.data.files.length > 0) {
-                    roleFolderId = roleSearch.data.files[0].id;
-                    roleFolderLink = roleSearch.data.files[0].webViewLink;
-                } else {
-                    const folderRole = await uploadDrive.files.create({
-                        resource: { name: roleFolderName, mimeType: 'application/vnd.google-apps.folder', parents: [chapFolderId] },
-                        fields: 'id, webViewLink'
-                    });
-                    roleFolderId = folderRole.data.id;
-                    roleFolderLink = folderRole.data.webViewLink;
-                }
-            } catch (err) {
-                return { success: false, message: `❌ Lỗi truy cập/tạo folder Drive: ${err.message}` };
+                roleFolderId = folderRole.data.id;
+                roleFolderLink = folderRole.data.webViewLink;
             }
-
-            if (zipFilePath) {
-                try {
-                    const fileName = path.basename(zipFilePath);
-                    const fileStream = fs.createReadStream(zipFilePath);
-                    await uploadDrive.files.create({
-                        requestBody: { name: fileName, parents: [roleFolderId] },
-                        media: { mimeType: 'application/zip', body: fileStream }
-                    });
-                    msgUpload = `✅ **NỘP SẢN PHẨM THÀNH CÔNG!**\n🤖 Đã tải **${fileName}** vào thư mục **${roleFolderName}**.\n🛡️ *(Acc Upload #${accNum})*\n🔗 Link: ${roleFolderLink}`;
-                } catch (err) {
-                    return { success: false, message: `❌ Lỗi tải file zip: ${err.message}` };
-                }
-            } else if (linkInput) {
-                const sourceFolderId = extractDriveId(linkInput);
-                if (!sourceFolderId) return { success: false, message: '❌ Link Folder Drive không hợp lệ.' };
-                let filesToCopy = [], sucC = 0, pt = null;
-                try {
-                    do {
-                        const res = await uploadDrive.files.list({
-                            q: `'${sourceFolderId}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'`,
-                            fields: 'nextPageToken, files(id, name)',
-                            pageToken: pt
-                        });
-                        filesToCopy = filesToCopy.concat(res.data.files);
-                        pt = res.data.nextPageToken;
-                    } while (pt);
-
-                    if (filesToCopy.length === 0) {
-                        return { success: false, message: `⚠️ Folder nguồn trống hoặc chưa mở quyền xem.\n🔗 Link đích: ${roleFolderLink}` };
-                    }
-
-                    for (let idx = 0; idx < filesToCopy.length; idx++) {
-                        const f = filesToCopy[idx];
-                        if (mainWindow) {
-                            mainWindow.webContents.send('copy-progress', { current: idx + 1, total: filesToCopy.length });
-                        }
-                        try {
-                            await uploadDrive.files.copy({ fileId: f.id, requestBody: { parents: [roleFolderId], name: f.name } });
-                            sucC++;
-                        } catch (e) {}
-                        await new Promise(r => setTimeout(r, 200));
-                    }
-                    msgUpload = `✅ **NỘP SẢN PHẨM THÀNH CÔNG!**\n🤖 Đã COPY xong **${sucC}/${filesToCopy.length}** file vào **${roleFolderName}**.\n🛡️ *(Acc Upload #${accNum})*\n🔗 Link: ${roleFolderLink}`;
-                } catch (e) {
-                    return { success: false, message: '❌ Lỗi quét file trên Drive.' };
-                }
-            }
-
-            // Xử lý riêng cho vị trí QC: gắn link vào Bảng Phụ
-            if (viTriInput === 'QC') {
-                const sheet2Tab = (thongTin.loai && thongTin.loai.toLowerCase().includes('manga')) ? 'MANGA' : 'MANHWA';
-                const [resWork2, resSheet2] = await Promise.all([
-                    sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID_2, range: `${sheet2Tab}!A1:Z5000` }),
-                    sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID_2 })
-                ]);
-
-                const rows2 = resWork2.data.values || [];
-                let targetRow = -1, currentDlStr = "", runningTruyen2 = "";
-                for (let i = 2; i < rows2.length; i++) {
-                    let r = rows2[i] || [];
-                    if (getCell(r, 1) !== "") runningTruyen2 = getCell(r, 1);
-                    else if (getCell(r, 4) === "") runningTruyen2 = "";
-                    if (xoaRac(runningTruyen2) === tenTruyenInput && getCell(r, 4) === chapInput) {
-                        targetRow = i;
-                        currentDlStr = getCell(r, 7);
-                        break;
-                    }
-                }
-
-                if (targetRow !== -1) {
-                    let linkGon = `=HYPERLINK("${roleFolderLink}"; "Chap ${chapInput}")`;
-                    let updateValues = [{ range: `${sheet2Tab}!F${targetRow + 1}`, values: [[linkGon]] }];
-                    if (noteInput !== '') updateValues.push({ range: `${sheet2Tab}!J${targetRow + 1}`, values: [[noteInput]] });
-
-                    await sheets.spreadsheets.values.batchUpdate({
-                        spreadsheetId: SPREADSHEET_ID_2,
-                        requestBody: { valueInputOption: 'USER_ENTERED', data: updateValues }
-                    });
-
-                    let vnToday = layNgayVN(), noteText = "", isLate = false;
-                    let pureDlStr = currentDlStr.split(' ')[0];
-                    let dlDate = parseDL(pureDlStr, vnToday);
-                    if (dlDate) {
-                        let diffTime = vnToday.getTime() - dlDate.getTime();
-                        if (diffTime > 0) {
-                            let d = Math.floor(Math.floor(diffTime / 1000) / 86400);
-                            if (d > 0) { isLate = true; noteText = `Trễ ${d} ngày`; }
-                            else noteText = "Đúng hạn";
-                        } else noteText = "Đúng hạn";
-                    } else noteText = pureDlStr;
-
-                    if (isLate) {
-                        let bD = bankDataMap[discordId];
-                        if (bD) {
-                            bD.treDL += 1;
-                            await sheets.spreadsheets.values.update({
-                                spreadsheetId: CONFIG.SPREADSHEET_ID,
-                                range: `Thanh_Vien!${String.fromCharCode(65 + COL_TV.TRE_DL)}${bD.row}`,
-                                valueInputOption: 'USER_ENTERED',
-                                requestBody: { values: [[bD.treDL]] }
-                            });
-                        }
-                    }
-
-                    let s2SheetData = resSheet2.data.sheets.find(s => s.properties.title === sheet2Tab);
-                    if (s2SheetData) {
-                        let bgColor = isLate ? { red: 0.957, green: 0.8, blue: 0.8 } : { red: 0.85, green: 0.917, blue: 0.827 };
-                        await sheets.spreadsheets.batchUpdate({
-                            spreadsheetId: SPREADSHEET_ID_2,
-                            requestBody: {
-                                requests: [{
-                                    repeatCell: {
-                                        range: { sheetId: s2SheetData.properties.sheetId, startRowIndex: targetRow, endRowIndex: targetRow + 1, startColumnIndex: 4, endColumnIndex: 5 },
-                                        cell: { userEnteredFormat: { backgroundColor: bgColor } },
-                                        fields: "userEnteredFormat.backgroundColor"
-                                    }
-                                }]
-                            }
-                        });
-                    }
-
-                    msgUpload += `\n📌 Đã gắn link Bảng Quản Lý (${sheet2Tab}): **${isLate ? "🔴 " + noteText : "🟢 Đúng hạn"}**`;
-                    if (noteInput) msgUpload += `\n📝 Ghi chú: ${noteInput}`;
-                }
-            }
-        } else {
-            // Trường hợp là vị trí FIX
-            msgUpload = `🔧 **ĐÃ FIX XONG:** Nộp sản phẩm vào thư mục Fix cho **${thongTin.tenGoc} - Chap ${chapInput}**`;
+        } catch (err) {
+            return { success: false, message: `❌ Lỗi truy cập/tạo folder Drive: ${err.message}` };
         }
 
-        // 2. PHÂN LUỒNG KÊNH DISCORD
-        let targetChannel = CONFIG.CHANNEL_DONE_EDIT;
-        if (viTriInput === 'TRANS') targetChannel = CONFIG.CHANNEL_DONE_TRANS;
-        else if (viTriInput === 'QC') targetChannel = CONFIG.CHANNEL_DONE_QC;
+        // 3. Tiến hành Copy Link Drive HOẶC Upload File Zip vào folder Role
+        if (zipFilePath) {
+            try {
+                const fileName = path.basename(zipFilePath);
+                const fileStream = fs.createReadStream(zipFilePath);
+                await uploadDrive.files.create({
+                    requestBody: { name: fileName, parents: [roleFolderId] },
+                    media: { mimeType: 'application/zip', body: fileStream }
+                });
+                msgUpload = `✅ **NỘP SẢN PHẨM THÀNH CÔNG!**\n🤖 Đã tải **${fileName}** vào thư mục **${roleFolderName}**.\n🛡️ *(Acc Upload #${accNum})*\n🔗 Link: ${roleFolderLink}`;
+            } catch (err) {
+                return { success: false, message: `❌ Lỗi tải file zip: ${err.message}` };
+            }
+        } else if (linkInput) {
+            const sourceFolderId = extractDriveId(linkInput);
+            if (!sourceFolderId) return { success: false, message: '❌ Link Folder Drive không hợp lệ.' };
+            let filesToCopy = [], sucC = 0, pt = null;
+            try {
+                do {
+                    const res = await uploadDrive.files.list({
+                        q: `'${sourceFolderId}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'`,
+                        fields: 'nextPageToken, files(id, name)',
+                        pageToken: pt
+                    });
+                    filesToCopy = filesToCopy.concat(res.data.files);
+                    pt = res.data.nextPageToken;
+                } while (pt);
+
+                if (filesToCopy.length === 0) {
+                    return { success: false, message: `⚠️ Folder nguồn trống hoặc chưa mở quyền xem.\n🔗 Link đích: ${roleFolderLink}` };
+                }
+
+                for (let idx = 0; idx < filesToCopy.length; idx++) {
+                    const f = filesToCopy[idx];
+                    if (mainWindow) {
+                        mainWindow.webContents.send('copy-progress', { current: idx + 1, total: filesToCopy.length });
+                    }
+                    try {
+                        await uploadDrive.files.copy({ fileId: f.id, requestBody: { parents: [roleFolderId], name: f.name } });
+                        sucC++;
+                    } catch (e) {}
+                    await new Promise(r => setTimeout(r, 200));
+                }
+                msgUpload = `✅ **NỘP SẢN PHẨM THÀNH CÔNG!**\n🤖 Đã COPY xong **${sucC}/${filesToCopy.length}** file vào **${roleFolderName}**.\n🛡️ *(Acc Upload #${accNum})*\n🔗 Link: ${roleFolderLink}`;
+            } catch (e) {
+                return { success: false, message: '❌ Lỗi quét file trên Drive.' };
+            }
+        }
+
+        // Tùy chỉnh thông báo nếu là FIX
+        if (viTriInput === 'FIX') {
+            msgUpload = `🔧 **ĐÃ FIX XONG:** Đã nộp sản phẩm vào thư mục **FIX** cho **${thongTin.tenGoc} - Chap ${chapInput}**.\n🔗 Link: ${roleFolderLink}`;
+        }
+
+        // 4. Xử lý riêng cho vị trí QC: gắn link vào Bảng Phụ
+        if (viTriInput === 'QC') {
+            const sheet2Tab = (thongTin.loai && thongTin.loai.toLowerCase().includes('manga')) ? 'MANGA' : 'MANHWA';
+            const [resWork2, resSheet2] = await Promise.all([
+                sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID_2, range: `${sheet2Tab}!A1:Z5000` }),
+                sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID_2 })
+            ]);
+
+            const rows2 = resWork2.data.values || [];
+            let targetRow = -1, currentDlStr = "", runningTruyen2 = "";
+            for (let i = 2; i < rows2.length; i++) {
+                let r = rows2[i] || [];
+                if (getCell(r, 1) !== "") runningTruyen2 = getCell(r, 1);
+                else if (getCell(r, 4) === "") runningTruyen2 = "";
+                if (xoaRac(runningTruyen2) === tenTruyenInput && getCell(r, 4) === chapInput) {
+                    targetRow = i;
+                    currentDlStr = getCell(r, 7);
+                    break;
+                }
+            }
+
+            if (targetRow !== -1) {
+                let linkGon = `=HYPERLINK("${roleFolderLink}"; "Chap ${chapInput}")`;
+                let updateValues = [{ range: `${sheet2Tab}!F${targetRow + 1}`, values: [[linkGon]] }];
+                if (noteInput !== '') updateValues.push({ range: `${sheet2Tab}!J${targetRow + 1}`, values: [[noteInput]] });
+
+                await sheets.spreadsheets.values.batchUpdate({
+                    spreadsheetId: SPREADSHEET_ID_2,
+                    requestBody: { valueInputOption: 'USER_ENTERED', data: updateValues }
+                });
+
+                let vnToday = layNgayVN(), noteText = "", isLate = false;
+                let pureDlStr = currentDlStr.split(' ')[0];
+                let dlDate = parseDL(pureDlStr, vnToday);
+                if (dlDate) {
+                    let diffTime = vnToday.getTime() - dlDate.getTime();
+                    if (diffTime > 0) {
+                        let d = Math.floor(Math.floor(diffTime / 1000) / 86400);
+                        if (d > 0) { isLate = true; noteText = `Trễ ${d} ngày`; }
+                        else noteText = "Đúng hạn";
+                    } else noteText = "Đúng hạn";
+                } else noteText = pureDlStr;
+
+                if (isLate) {
+                    let bD = bankDataMap[discordId];
+                    if (bD) {
+                        bD.treDL += 1;
+                        await sheets.spreadsheets.values.update({
+                            spreadsheetId: CONFIG.SPREADSHEET_ID,
+                            range: `Thanh_Vien!${String.fromCharCode(65 + COL_TV.TRE_DL)}${bD.row}`,
+                            valueInputOption: 'USER_ENTERED',
+                            requestBody: { values: [[bD.treDL]] }
+                        });
+                    }
+                }
+
+                let s2SheetData = resSheet2.data.sheets.find(s => s.properties.title === sheet2Tab);
+                if (s2SheetData) {
+                    let bgColor = isLate ? { red: 0.957, green: 0.8, blue: 0.8 } : { red: 0.85, green: 0.917, blue: 0.827 };
+                    await sheets.spreadsheets.batchUpdate({
+                        spreadsheetId: SPREADSHEET_ID_2,
+                        requestBody: {
+                            requests: [{
+                                repeatCell: {
+                                    range: { sheetId: s2SheetData.properties.sheetId, startRowIndex: targetRow, endRowIndex: targetRow + 1, startColumnIndex: 4, endColumnIndex: 5 },
+                                    cell: { userEnteredFormat: { backgroundColor: bgColor } },
+                                    fields: "userEnteredFormat.backgroundColor"
+                                }
+                            }]
+                        }
+                    });
+                }
+                msgUpload += `\n📌 Đã gắn link Bảng Quản Lý (${sheet2Tab}): **${isLate ? "🔴 " + noteText : "🟢 Đúng hạn"}**`;
+                if (noteInput) msgUpload += `\n📝 Ghi chú: ${noteInput}`;
+            }
+        }
+
+        // 5. PHÂN LUỒNG KÊNH DISCORD
+        let targetChannel = CONFIG.CHANNEL_DONE_EDIT; // Mặc định là kênh Edit
+        
+        if (viTriInput === 'TRANS') {
+            targetChannel = CONFIG.CHANNEL_DONE_TRANS;
+        } else if (viTriInput === 'QC') {
+            targetChannel = CONFIG.CHANNEL_DONE_QC;
+        } else if (viTriInput === 'FIX') {
+            targetChannel = '1492185759971672204'; // Đẩy đích danh FIX vào kênh sếp yêu cầu
+        }
 
         await guiThongBaoDiscord(targetChannel, `📦 <@${discordId}> (**${bietDanh}**) vừa nộp sản phẩm **[${viTriInput}]** truyện **${thongTin.tenGoc} - Chap ${chapInput}**:\n` + msgUpload);
         return { success: true, message: msgUpload };
